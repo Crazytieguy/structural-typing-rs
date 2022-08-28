@@ -18,7 +18,6 @@ mod tests {
             self.get::<Name>().to_uppercase()
         }
     }
-    impl<'a, T: Has<Name<'a>>> NameOps<'a> for T {}
 
     trait PersonOps<'a>: Has<Name<'a>> + Has<Age> {
         fn say_hello(&self) -> String {
@@ -27,7 +26,6 @@ mod tests {
             format!("Hi! my name is {name} and I'm {age} years old.")
         }
     }
-    impl<'a, T: Has<Name<'a>> + Has<Age>> PersonOps<'a> for T {}
 
     #[test]
     fn getting() {
@@ -43,6 +41,9 @@ mod tests {
     }
 
     // Everything below here can be generated with a derive macro
+
+    impl<'a, T: Has<Name<'a>>> NameOps<'a> for T {}
+    impl<'a, T: Has<Name<'a>> + Has<Age>> PersonOps<'a> for T {}
     impl<'a> Property for Name<'a> {
         type Item = &'a str;
         fn get(&self) -> &Self::Item {
