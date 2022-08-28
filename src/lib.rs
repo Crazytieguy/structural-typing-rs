@@ -10,17 +10,17 @@ mod property;
 mod tests {
     use crate::property::{Access, Has, Property};
 
-    struct Name<'a>(&'a str);
+    struct Name(String);
     struct Age(u8);
     struct Father<T>(T);
 
-    trait NameOps<'a>: Has<Name<'a>> {
+    trait NameOps: Has<Name> {
         fn shout_name(&self) -> String {
             self.get::<Name>().to_uppercase()
         }
     }
 
-    trait PersonOps<'a>: Has<Name<'a>> + Has<Age> {
+    trait PersonOps: Has<Name> + Has<Age> {
         fn say_hello(&self) -> String {
             let name = self.get::<Name>();
             let age = self.get::<Age>();
@@ -30,25 +30,34 @@ mod tests {
 
     #[test]
     fn getting() {
-        let john = (Name("John"), Age(26));
+        let mut john = (Name("John".into()), Age(26));
         assert_eq!(john.shout_name(), "JOHN");
+        john.get_mut::<Name>().push_str("son");
         assert_eq!(
             john.say_hello(),
-            "Hi! my name is John and I'm 26 years old."
+            "Hi! my name is Johnson and I'm 26 years old."
         );
-        (Father((Name("Nate"), Age(35))), Name("Mike"), 123, Age(3))
+        (
+            Father((Name("Nate".into()), Age(35))),
+            Name("Mike".into()),
+            123,
+            Age(3),
+        )
             .get::<Father<_>>()
             .say_hello();
     }
 
     // Everything below here could be generated from the above code using macros
 
-    impl<'a, T: Has<Name<'a>>> NameOps<'a> for T {}
-    impl<'a, T: Has<Name<'a>> + Has<Age>> PersonOps<'a> for T {}
-    impl<'a> Property for Name<'a> {
-        type Item = &'a str;
+    impl<T: Has<Name>> NameOps for T {}
+    impl<T: Has<Name> + Has<Age>> PersonOps for T {}
+    impl Property for Name {
+        type Item = String;
         fn get(&self) -> &Self::Item {
             &self.0
+        }
+        fn get_mut(&mut self) -> &mut Self::Item {
+            &mut self.0
         }
     }
     impl Property for Age {
@@ -56,11 +65,17 @@ mod tests {
         fn get(&self) -> &Self::Item {
             &self.0
         }
+        fn get_mut(&mut self) -> &mut Self::Item {
+            &mut self.0
+        }
     }
     impl<T> Property for Father<T> {
         type Item = T;
         fn get(&self) -> &Self::Item {
             &self.0
+        }
+        fn get_mut(&mut self) -> &mut Self::Item {
+            &mut self.0
         }
     }
 }
