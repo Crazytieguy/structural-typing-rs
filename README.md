@@ -1,4 +1,4 @@
-# Nominal Typing for Rust
+# Structural Typing for Rust
 
 Defining structs that share similar data can get repetitive. This is an experiment to allow using tuples as holders for properties, and allowing to define funcionality based on which properties are available.
 

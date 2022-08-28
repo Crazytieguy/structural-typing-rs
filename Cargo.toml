@@ -1,7 +1,4 @@
 [package]
-name = "nominal-typing"
+name = "structural-typing"
 version = "0.1.0"
 edition = "2021"
-
-[dependencies]
-derive-new = "0.5.9"
