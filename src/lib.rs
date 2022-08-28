@@ -5,6 +5,7 @@
 
 mod property;
 
+/// Everything here is completely safe and can't panic at runtime
 #[cfg(test)]
 mod tests {
     use crate::property::{Access, Has, Property};
@@ -40,7 +41,7 @@ mod tests {
             .say_hello();
     }
 
-    // Everything below here can be generated with a derive macro
+    // Everything below here could be generated from the above code using macros
 
     impl<'a, T: Has<Name<'a>>> NameOps<'a> for T {}
     impl<'a, T: Has<Name<'a>> + Has<Age>> PersonOps<'a> for T {}
@@ -50,14 +51,12 @@ mod tests {
             &self.0
         }
     }
-
     impl Property for Age {
         type Item = u8;
         fn get(&self) -> &Self::Item {
             &self.0
         }
     }
-
     impl<T> Property for Father<T> {
         type Item = T;
         fn get(&self) -> &Self::Item {
