@@ -29,7 +29,7 @@ mod tests {
     }
 
     #[test]
-    fn getting() {
+    fn example() {
         let mut john = (Name("John".into()), Age(26));
         assert_eq!(john.shout_name(), "JOHN");
         john.get_mut::<Name>().push_str("son");
