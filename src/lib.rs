@@ -11,8 +11,6 @@ mod tests {
     use crate::property::{Access, Has, Property};
 
     struct Name(String);
-    struct Age(u8);
-    struct Father<T>(T);
 
     fn shout_name<T: Has<Name>>(person: &T) -> String {
         person.get::<Name>().to_uppercase()
@@ -20,10 +18,14 @@ mod tests {
 
     #[test]
     fn simple_example() {
-        let mut john = (Name("John".into()), Age(26));
+        let mut john = (Name("John".into()),);
         john.get_mut::<Name>().push_str("son");
         assert_eq!(shout_name(&john), "JOHNSON");
     }
+
+    struct Age(u8);
+    // Fathers have to be people (in this case, have Name and Age)
+    struct Father<T: Person>(T);
 
     trait Person: Has<Name> + Has<Age> {
         fn say_hello(&self) -> String {
@@ -79,7 +81,7 @@ mod tests {
             &mut self.0
         }
     }
-    impl<T> Property for Father<T> {
+    impl<T: Person> Property for Father<T> {
         type Item = T;
         fn get(&self) -> &Self::Item {
             &self.0
