@@ -14,43 +14,53 @@ mod tests {
     struct Age(u8);
     struct Father<T>(T);
 
-    trait NameOps: Has<Name> {
-        fn shout_name(&self) -> String {
-            self.get::<Name>().to_uppercase()
-        }
+    fn shout_name<T: Has<Name>>(person: &T) -> String {
+        person.get::<Name>().to_uppercase()
     }
 
-    trait PersonOps: Has<Name> + Has<Age> {
+    #[test]
+    fn simple_example() {
+        let mut john = (Name("John".into()), Age(26));
+        john.get_mut::<Name>().push_str("son");
+        assert_eq!(shout_name(&john), "JOHNSON");
+    }
+
+    trait Person: Has<Name> + Has<Age> {
         fn say_hello(&self) -> String {
             let name = self.get::<Name>();
             let age = self.get::<Age>();
             format!("Hi! my name is {name} and I'm {age} years old.")
         }
+
+        fn say_hello_with_father<T: Person>(&self) -> String
+        where
+            Self: Has<Father<T>>,
+        {
+            format!(
+                "{}\n{}",
+                self.say_hello(),
+                self.get::<Father<_>>().say_hello()
+            )
+        }
     }
 
     #[test]
-    fn example() {
-        let mut john = (Name("John".into()), Age(26));
-        assert_eq!(john.shout_name(), "JOHN");
-        john.get_mut::<Name>().push_str("son");
-        assert_eq!(
-            john.say_hello(),
-            "Hi! my name is Johnson and I'm 26 years old."
-        );
-        (
+    fn nested_trait_example() {
+        let mike = (
             Father((Name("Nate".into()), Age(35))),
-            Name("Mike".into()),
-            123,
             Age(3),
-        )
-            .get::<Father<_>>()
-            .say_hello();
+            Name("Mike".into()),
+        );
+        assert_eq!(
+            mike.say_hello_with_father(),
+            "Hi! my name is Mike and I'm 3 years old.\n\
+            Hi! my name is Nate and I'm 35 years old."
+        );
     }
 
     // Everything below here could be generated from the above code using macros
 
-    impl<T: Has<Name>> NameOps for T {}
-    impl<T: Has<Name> + Has<Age>> PersonOps for T {}
+    impl<T: Has<Name> + Has<Age>> Person for T {}
     impl Property for Name {
         type Item = String;
         fn get(&self) -> &Self::Item {
