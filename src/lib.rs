@@ -3,14 +3,21 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::trait_duplication_in_bounds)]
 
+mod access;
+mod has;
+mod into_values;
 mod property;
+mod select;
+pub use access::Access;
+pub use has::Has;
+pub use property::{Property, P};
 
 /// Everything here is completely safe and can't panic at runtime
 #[cfg(test)]
 mod tests {
     use std::marker::PhantomData;
 
-    use crate::property::{Access, Has, Property, P};
+    use crate::{Access, Has, Property, P};
 
     struct Name;
     impl Property for Name {
