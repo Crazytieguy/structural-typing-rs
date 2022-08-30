@@ -1,17 +1,14 @@
-use crate::{Access, Property, P};
+use crate::{
+    generics_helpers::{IsNot, True},
+    Access, Property, P,
+};
 
-use std::marker::PhantomData;
-
-auto trait True {}
-struct IsNot<A, B>(PhantomData<A>, PhantomData<B>);
-impl<T> !True for IsNot<T, T> {}
-
-pub trait Has<T: Property>: Access {
+pub trait Get<T: Property>: Access {
     fn _get(&self) -> &T::Type;
     fn _get_mut(&mut self) -> &mut T::Type;
 }
 
-impl<T> Has<T> for (P<T>,)
+impl<T> Get<T> for (P<T>,)
 where
     T: Property,
 {
@@ -23,7 +20,7 @@ where
     }
 }
 
-impl<A, B> Has<A> for (P<A>, P<B>)
+impl<A, B> Get<A> for (P<A>, P<B>)
 where
     A: Property,
     B: Property,
@@ -37,7 +34,7 @@ where
     }
 }
 
-impl<A, B> Has<B> for (P<A>, P<B>)
+impl<A, B> Get<B> for (P<A>, P<B>)
 where
     A: Property,
     B: Property,
@@ -51,7 +48,7 @@ where
     }
 }
 
-impl<A, B, C> Has<A> for (P<A>, P<B>, P<C>)
+impl<A, B, C> Get<A> for (P<A>, P<B>, P<C>)
 where
     A: Property,
     B: Property,
@@ -67,7 +64,7 @@ where
     }
 }
 
-impl<A, B, C> Has<B> for (P<A>, P<B>, P<C>)
+impl<A, B, C> Get<B> for (P<A>, P<B>, P<C>)
 where
     A: Property,
     B: Property,
@@ -83,7 +80,7 @@ where
     }
 }
 
-impl<A, B, C> Has<C> for (P<A>, P<B>, P<C>)
+impl<A, B, C> Get<C> for (P<A>, P<B>, P<C>)
 where
     A: Property,
     B: Property,
@@ -99,7 +96,7 @@ where
     }
 }
 
-impl<A, B, C, D> Has<A> for (P<A>, P<B>, P<C>, P<D>)
+impl<A, B, C, D> Get<A> for (P<A>, P<B>, P<C>, P<D>)
 where
     A: Property,
     B: Property,
@@ -117,7 +114,7 @@ where
     }
 }
 
-impl<A, B, C, D> Has<B> for (P<A>, P<B>, P<C>, P<D>)
+impl<A, B, C, D> Get<B> for (P<A>, P<B>, P<C>, P<D>)
 where
     A: Property,
     B: Property,
@@ -135,7 +132,7 @@ where
     }
 }
 
-impl<A, B, C, D> Has<C> for (P<A>, P<B>, P<C>, P<D>)
+impl<A, B, C, D> Get<C> for (P<A>, P<B>, P<C>, P<D>)
 where
     A: Property,
     B: Property,
@@ -153,7 +150,7 @@ where
     }
 }
 
-impl<A, B, C, D> Has<D> for (P<A>, P<B>, P<C>, P<D>)
+impl<A, B, C, D> Get<D> for (P<A>, P<B>, P<C>, P<D>)
 where
     A: Property,
     B: Property,

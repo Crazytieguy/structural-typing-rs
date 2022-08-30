@@ -1,24 +1,27 @@
-use crate::{Access, Has, Property, P};
+use crate::{Access, Get, Property, P};
 use std::mem;
 
-pub trait Select<T, U>: Access {
-    fn _select(self) -> U;
+pub trait Select<T>: Access {
+    type Output;
+    fn _select(self) -> Self::Output;
 }
 
-impl<T: Property> Select<(T,), (P<T>,)> for (P<T>,) {
+impl<T: Property> Select<(T,)> for (P<T>,) {
+    type Output = (P<T>,);
     fn _select(self) -> (P<T>,) {
         self
     }
 }
 
-impl<A, B, U> Select<(A, B), (P<A>, P<B>)> for U
+impl<A, B, U> Select<(A, B)> for U
 where
     A: Property,
     B: Property,
     A::Type: Default,
     B::Type: Default,
-    U: Has<A> + Has<B>,
+    U: Get<A> + Get<B>,
 {
+    type Output = (P<A>, P<B>);
     fn _select(mut self) -> (P<A>, P<B>) {
         let a = mem::take(self.get_mut::<A>());
         let b = mem::take(self.get_mut::<B>());
@@ -26,7 +29,7 @@ where
     }
 }
 
-impl<A, B, C, U> Select<(A, B, C), (P<A>, P<B>, P<C>)> for U
+impl<A, B, C, U> Select<(A, B, C)> for U
 where
     A: Property,
     B: Property,
@@ -34,8 +37,9 @@ where
     A::Type: Default,
     B::Type: Default,
     C::Type: Default,
-    U: Has<A> + Has<B> + Has<C>,
+    U: Get<A> + Get<B> + Get<C>,
 {
+    type Output = (P<A>, P<B>, P<C>);
     fn _select(mut self) -> (P<A>, P<B>, P<C>) {
         let a = mem::take(self.get_mut::<A>());
         let b = mem::take(self.get_mut::<B>());
@@ -44,7 +48,7 @@ where
     }
 }
 
-impl<A, B, C, D, U> Select<(A, B, C, D), (P<A>, P<B>, P<C>, P<D>)> for U
+impl<A, B, C, D, U> Select<(A, B, C, D)> for U
 where
     A: Property,
     B: Property,
@@ -54,8 +58,9 @@ where
     B::Type: Default,
     C::Type: Default,
     D::Type: Default,
-    U: Has<A> + Has<B> + Has<C> + Has<D>,
+    U: Get<A> + Get<B> + Get<C> + Get<D>,
 {
+    type Output = (P<A>, P<B>, P<C>, P<D>);
     fn _select(mut self) -> (P<A>, P<B>, P<C>, P<D>) {
         let a = mem::take(self.get_mut::<A>());
         let b = mem::take(self.get_mut::<B>());

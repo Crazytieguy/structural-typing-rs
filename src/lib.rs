@@ -4,12 +4,14 @@
 #![allow(clippy::trait_duplication_in_bounds)]
 
 mod access;
-mod has;
+mod generics_helpers;
+mod get;
 mod into_values;
 mod property;
 mod select;
+mod set;
 pub use access::Access;
-pub use has::Has;
+pub use get::Get;
 pub use property::{Property, P};
 
 /// Everything here is completely safe and can't panic at runtime
@@ -17,14 +19,14 @@ pub use property::{Property, P};
 mod tests {
     use std::marker::PhantomData;
 
-    use crate::{Access, Has, Property, P};
+    use crate::{Access, Get, Property, P};
 
     struct Name;
     impl Property for Name {
         type Type = String;
     }
 
-    fn shout_name<T: Has<Name>>(person: &T) -> String {
+    fn shout_name<T: Get<Name>>(person: &T) -> String {
         person.get::<Name>().to_uppercase()
     }
 
@@ -45,8 +47,8 @@ mod tests {
         type Type = T;
     }
 
-    impl<T: Has<Name> + Has<Age>> Person for T {}
-    trait Person: Has<Name> + Has<Age> {
+    impl<T: Get<Name> + Get<Age>> Person for T {}
+    trait Person: Get<Name> + Get<Age> {
         fn say_hello(&self) -> String {
             let name = self.get::<Name>();
             let age = self.get::<Age>();
@@ -55,7 +57,7 @@ mod tests {
 
         fn say_hello_with_father<T: Person>(&self) -> String
         where
-            Self: Has<Father<T>>,
+            Self: Get<Father<T>>,
         {
             format!(
                 "{}\n{}",
@@ -78,7 +80,7 @@ mod tests {
             Hi! my name is Nate and I'm 35 years old."
         );
         assert_eq!(
-            mike.select::<(Name, Age), _>().into_values(),
+            mike.select::<(Name, Age)>().into_values(),
             ("Mike".into(), 3)
         );
     }
