@@ -38,10 +38,6 @@ where
     }
 }
 
-impl Property for () {
-    type Type = ();
-}
-
 pub trait Record: Sized {
     fn insert<T: Property>(self, val: T::Type) -> (Self, P<T>) {
         (self, P(val))
