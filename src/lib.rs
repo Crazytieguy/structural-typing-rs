@@ -4,36 +4,26 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::trait_duplication_in_bounds)]
 
-mod access;
-mod generics_helpers;
-mod get;
-mod into_values;
-mod property;
 mod record;
-mod select;
-pub use access::Access;
-pub use get::Get;
-pub use property::{Property, P};
+pub use record::{Has, Property, Record, WithDefault, P};
 
-/// Everything here is completely safe and can't panic at runtime
 #[cfg(test)]
 mod tests {
     use std::marker::PhantomData;
 
-    use crate::{Access, Get, Property, P};
-
+    use super::*;
     struct Name;
     impl Property for Name {
         type Type = String;
     }
 
-    fn shout_name<T: Get<Name>>(person: &T) -> String {
+    fn shout_name<T: Has<Name>>(person: &T) -> String {
         person.get::<Name>().to_uppercase()
     }
 
     #[test]
     fn simple_example() {
-        let mut john = (P::<Name>("John".into()),);
+        let mut john = ().insert::<Name>("John".into());
         john.get_mut::<Name>().push_str("son");
         assert_eq!(shout_name(&john), "JOHNSON");
     }
@@ -48,8 +38,8 @@ mod tests {
         type Type = T;
     }
 
-    impl<T: Get<Name> + Get<Age>> Person for T {}
-    trait Person: Get<Name> + Get<Age> {
+    impl<T: Has<Name> + Has<Age>> Person for T {}
+    trait Person: Has<Name> + Has<Age> {
         fn say_hello(&self) -> String {
             let name = self.get::<Name>();
             let age = self.get::<Age>();
@@ -58,7 +48,7 @@ mod tests {
 
         fn say_hello_with_father<T: Person>(&self) -> String
         where
-            Self: Get<Father<T>>,
+            Self: Has<Father<T>>,
         {
             format!(
                 "{}\n{}",
@@ -70,19 +60,38 @@ mod tests {
 
     #[test]
     fn nested_trait_example() {
-        let mike = (
-            P::<Father<_>>((P::<Name>("Nate".into()), P::<Age>(35))),
-            P::<Age>(3),
-            P::<Name>("Mike".into()),
-        );
+        let mike =
+            ().insert::<Father<_>>(().insert::<Age>(35).insert::<Name>("Nate".into()))
+                .insert::<Age>(3)
+                .insert::<Name>("Mike".into());
         assert_eq!(
             mike.say_hello_with_father(),
             "Hi! my name is Mike and I'm 3 years old.\n\
             Hi! my name is Nate and I'm 35 years old."
         );
-        assert_eq!(
-            mike.select::<(Name, Age)>().into_values(),
-            ("Mike".into(), 3)
-        );
+    }
+
+    struct IsAdmin;
+    impl Property for IsAdmin {
+        type Type = bool;
+    }
+
+    fn access_allowed<T: WithDefault<IsAdmin>>(user: &T) -> bool {
+        *user.get_or::<IsAdmin>(&false)
+    }
+
+    fn with_is_admin<T: WithDefault<IsAdmin>>(user: T) -> (T, P<IsAdmin>) {
+        user.insert_default::<IsAdmin>(false)
+    }
+
+    #[test]
+    fn defaults_example() {
+        let user = ().insert::<Name>("Hope".into());
+        assert!(!access_allowed(&user));
+        let mut user = with_is_admin(user);
+        assert!(!user.get::<IsAdmin>());
+        *user.get_mut::<IsAdmin>() = true;
+        let user = with_is_admin(user);
+        assert!(user.get::<IsAdmin>());
     }
 }

@@ -1,10 +1,14 @@
-use crate::generics_helpers::{IsNot, True};
+use std::{fmt::Debug, marker::PhantomData};
 
-trait Property {
+pub auto trait True {}
+pub struct IsNot<A, B>(PhantomData<(A, B)>);
+impl<T> !True for IsNot<T, T> {}
+
+pub trait Property {
     type Type;
 }
 
-struct P<T: Property>(T::Type);
+pub struct P<T: Property>(pub T::Type);
 impl<T: Property> Clone for P<T>
 where
     T::Type: Clone,
@@ -25,32 +29,34 @@ where
     }
 }
 
+impl<T: Property> Debug for P<T>
+where
+    T::Type: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl Property for () {
     type Type = ();
 }
 
-trait Record: Sized {
+pub trait Record: Sized {
     fn insert<T: Property>(self, val: T::Type) -> (Self, P<T>) {
         (self, P(val))
     }
     fn insert_default<T: Property>(self, val: T::Type) -> (Self, P<T>)
     where
-        IsNot<T, ()>: True,
+        Self: WithDefault<T>,
     {
-        let self_with_empty_tuple = (self, P::<()>(()));
-        let ((regular_self, _), t) = self_with_empty_tuple._insert_default(val);
-        (regular_self, t)
+        self._insert_default(val)
     }
     fn get_or<'a, T: Property>(&'a self, val: &'a T::Type) -> &'a T::Type
     where
-        IsNot<T, ()>: True,
+        Self: WithDefault<T>,
     {
-        let self_ptr = (self as *const Self).cast::<(Self, P<()>)>();
-        // Safety: I want the compiler to think there's a P<()> at the end
-        // Because any (Record, P) implements WithDefault<T>
-        // The empty tuple has size 0 so this should be fine
-        let self_with_empty_tuple = unsafe { &*self_ptr };
-        WithDefault::<T>::_get_or(self_with_empty_tuple, val)
+        self._get_or(val)
     }
     fn get<A: Property>(&self) -> &A::Type
     where
@@ -81,7 +87,7 @@ trait Record: Sized {
 impl Record for () {}
 impl<A: Record, B: Property> Record for (A, P<B>) {}
 
-trait WithDefault<T: Property>: Record {
+pub trait WithDefault<T: Property>: Record {
     fn _insert_default(self, val: T::Type) -> (Self, P<T>);
     fn _get_or<'a>(&'a self, val: &'a T::Type) -> &'a T::Type;
 }
@@ -97,18 +103,18 @@ impl<A: Property> WithDefault<A> for () {
 
 impl<T, A, B> WithDefault<A> for (T, P<B>)
 where
-    T: Record,
+    T: WithDefault<A>,
     A: Property,
     B: Property,
     IsNot<A, ()>: True,
     IsNot<A, B>: True,
 {
     fn _insert_default(self, val: A::Type) -> (Self, P<A>) {
-        let (inner_self, a) = self.0.insert_default(val);
+        let (inner_self, a) = self.0._insert_default(val);
         ((inner_self, self.1), a)
     }
     fn _get_or<'a>(&'a self, val: &'a A::Type) -> &'a A::Type {
-        self.0.get_or(val)
+        self.0._get_or(val)
     }
 }
 
@@ -125,7 +131,7 @@ where
     }
 }
 
-trait Has<T: Property>: Record {
+pub trait Has<T: Property>: Record {
     type Rem: Record;
     fn _get(&self) -> &T::Type;
     fn _get_mut(&mut self) -> &mut T::Type;
@@ -169,7 +175,7 @@ where
     }
 }
 
-trait PartialTake<T: Record>: Record {
+pub trait PartialTake<T: Record>: Record {
     fn _partial_take(&mut self) -> T;
 }
 
@@ -225,10 +231,12 @@ mod tests {
         assert!(record.get::<IsAdmin>());
         let (record, is_admin) = record.remove::<IsAdmin>();
         let ((), name) = record.remove();
-        println!("name={name}, is_admin={is_admin}, age={age}");
+        assert_eq!(name, "Hi");
+        assert!(is_admin);
+        assert_eq!(age, 15);
     }
 
-    fn default_is_admin<T: Record>(val: T) -> (T, P<IsAdmin>) {
+    fn default_is_admin<T: WithDefault<IsAdmin>>(val: T) -> (T, P<IsAdmin>) {
         let val = val.insert_default::<IsAdmin>(false);
         val.get::<IsAdmin>();
         val
@@ -258,18 +266,13 @@ mod tests {
         assert!((height - 1.78).abs() < f64::EPSILON);
     }
 
-    fn generic<T: Has<Age> + Has<Name>>(inp: T) -> (String, u8, bool) {
+    fn generic<T: Has<Age> + Has<Name> + WithDefault<IsAdmin>>(inp: T) -> (String, u8, bool) {
         inp.get::<Age>();
         let mut inp = inp.insert_default::<IsAdmin>(false);
         let ((((), P(name)), P(age)), P(is_admin)) =
             inp.partial_take::<((((), P<Name>), P<Age>), P<IsAdmin>)>();
         (name, age, is_admin)
     }
-
-    /// record!{
-    ///     Name: "Hi",
-    ///     Age: 89,
-    /// }
 
     #[test]
     fn test_generic() {
