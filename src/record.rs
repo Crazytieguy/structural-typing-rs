@@ -8,26 +8,8 @@ pub trait Property {
     type Type;
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct P<T: Property>(pub T::Type);
-impl<T: Property> Clone for P<T>
-where
-    T::Type: Clone,
-{
-    fn clone(&self) -> Self {
-        P(self.0.clone())
-    }
-}
-
-impl<T: Property> Copy for P<T> where T::Type: Copy {}
-
-impl<T: Property> Default for P<T>
-where
-    T::Type: Default,
-{
-    fn default() -> Self {
-        P(Default::default())
-    }
-}
 
 impl<T: Property> Debug for P<T>
 where
