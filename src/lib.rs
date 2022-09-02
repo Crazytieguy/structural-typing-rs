@@ -1,5 +1,6 @@
 #![feature(negative_impls)]
 #![feature(auto_traits)]
+// TODO: #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::trait_duplication_in_bounds)]
 
@@ -7,9 +8,9 @@ mod access;
 mod generics_helpers;
 mod get;
 mod into_values;
+mod list_based;
 mod property;
 mod select;
-mod set;
 pub use access::Access;
 pub use get::Get;
 pub use property::{Property, P};

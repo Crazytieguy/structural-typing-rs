@@ -1,4 +1,4 @@
-use crate::{into_values::IntoValues, select::Select, set::Set, Get, Property};
+use crate::{into_values::IntoValues, select::Select, Get, Property};
 
 pub trait Access: Sized {
     fn get<'a, T>(&'a self) -> &'a T::Type
@@ -29,14 +29,6 @@ pub trait Access: Sized {
         Self: IntoValues<T>,
     {
         IntoValues::<T>::_into_values(self)
-    }
-
-    fn set<T>(self, val: T::Type) -> <Self as Set<T>>::Output
-    where
-        T: Property,
-        Self: Set<T>,
-    {
-        Set::<T>::_set(self, val)
     }
 }
 
