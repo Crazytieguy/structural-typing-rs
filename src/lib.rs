@@ -1,6 +1,5 @@
 #![feature(negative_impls)]
 #![feature(auto_traits)]
-#![feature(core_intrinsics)]
 // TODO: #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::trait_duplication_in_bounds)]

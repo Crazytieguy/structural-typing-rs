@@ -1,4 +1,5 @@
-use std::{fmt::Debug, intrinsics::type_id, marker::PhantomData, mem::forget};
+use core::any::Any;
+use std::{fmt::Debug, marker::PhantomData};
 
 pub auto trait True {}
 pub struct IsNot<A, B>(PhantomData<(A, B)>);
@@ -33,33 +34,27 @@ pub trait Record: Sized {
     }
     fn insert_default<T: Property>(self, val: T::Type) -> (Self, P<T>) {
         if Self::IS_TERMINATOR {
-            (self, P(val))
-        } else if type_id::<T>() == type_id::<Self::Top>() {
-            let (rest, top) = self._into_parts();
-            let top_as_pt = unsafe { std::mem::transmute_copy::<P<Self::Top>, P<T>>(&top) };
-            forget(top);
-            let p_val = P(val);
-            let p_val_as_p_top = unsafe { std::mem::transmute_copy::<P<T>, P<Self::Top>>(&p_val) };
-            forget(p_val);
-            let new_self = Self::_from_parts(rest, p_val_as_p_top);
-            (new_self, top_as_pt)
+            return (self, P(val));
+        }
+        let (rest, top) = self._into_parts();
+        let mut top_and_val = Some((top, P::<T>(val)));
+        let t_v_ref: &mut dyn Any = &mut top_and_val;
+        if let Some((top, val)) = t_v_ref.downcast_mut().and_then(Option::take) {
+            (Self::_from_parts(rest, val), top)
         } else {
-            let (rest, top) = self._into_parts();
-            let (rest, p_val) = rest.insert_default(val);
-            let new_self = Self::_from_parts(rest, top);
-            (new_self, p_val)
+            let (top, p_val) = top_and_val.unwrap();
+            let (rest, p_val) = rest.insert_default(p_val.0);
+            (Self::_from_parts(rest, top), p_val)
         }
     }
     fn get_or<'a, T: Property>(&'a self, val: &'a T::Type) -> &'a T::Type {
         if Self::IS_TERMINATOR {
-            val
-        } else if type_id::<T>() == type_id::<Self::Top>() {
-            let top = &self._as_parts().1 .0;
-            let top_as_t = (top as *const <Self::Top as Property>::Type).cast::<T::Type>();
-            unsafe { &*top_as_t }
-        } else {
-            self._as_parts().0.get_or::<T>(val)
+            return val;
         }
+        let top_ref: &dyn Any = &self._as_parts().1;
+        top_ref
+            .downcast_ref()
+            .unwrap_or_else(|| self._as_parts().0.get_or::<T>(val))
     }
     fn get<A: Property>(&self) -> &A::Type
     where
