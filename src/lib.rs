@@ -1,11 +1,12 @@
 #![feature(negative_impls)]
 #![feature(auto_traits)]
+#![feature(core_intrinsics)]
 // TODO: #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::trait_duplication_in_bounds)]
 
 mod record;
-pub use record::{Has, Property, Record, WithDefault, P};
+pub use record::{Has, Property, Record, P};
 
 #[cfg(test)]
 mod tests {
@@ -33,8 +34,8 @@ mod tests {
         type Type = u8;
     }
     // Fathers have to be people (in this case, have Name and Age)
-    struct Father<T: Person>(PhantomData<T>);
-    impl<T: Person> Property for Father<T> {
+    struct Father<T: Person + 'static>(PhantomData<T>);
+    impl<T: Person + 'static> Property for Father<T> {
         type Type = T;
     }
 
@@ -46,7 +47,7 @@ mod tests {
             format!("Hi! my name is {name} and I'm {age} years old.")
         }
 
-        fn say_hello_with_father<T: Person>(&self) -> String
+        fn say_hello_with_father<T: Person + 'static>(&self) -> String
         where
             Self: Has<Father<T>>,
         {
@@ -76,11 +77,11 @@ mod tests {
         type Type = bool;
     }
 
-    fn access_allowed<T: WithDefault<IsAdmin>>(user: &T) -> bool {
+    fn access_allowed<T: Record>(user: &T) -> bool {
         *user.get_or::<IsAdmin>(&false)
     }
 
-    fn with_is_admin<T: WithDefault<IsAdmin>>(user: T) -> (T, P<IsAdmin>) {
+    fn with_is_admin<T: Record>(user: T) -> (T, P<IsAdmin>) {
         user.insert_default::<IsAdmin>(false)
     }
 

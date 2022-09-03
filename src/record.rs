@@ -1,10 +1,10 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::{fmt::Debug, intrinsics::type_id, marker::PhantomData, mem::forget};
 
 pub auto trait True {}
 pub struct IsNot<A, B>(PhantomData<(A, B)>);
 impl<T> !True for IsNot<T, T> {}
 
-pub trait Property {
+pub trait Property: 'static {
     type Type;
 }
 
@@ -21,20 +21,45 @@ where
 }
 
 pub trait Record: Sized {
+    type Top: Property;
+    type Rest: Record;
+    const IS_TERMINATOR: bool;
+    fn _as_parts(&self) -> &(Self::Rest, P<Self::Top>);
+    fn _as_mut_parts(&mut self) -> &mut (Self::Rest, P<Self::Top>);
+    fn _into_parts(self) -> (Self::Rest, P<Self::Top>);
+    fn _from_parts(rest: Self::Rest, top: P<Self::Top>) -> Self;
     fn insert<T: Property>(self, val: T::Type) -> (Self, P<T>) {
         (self, P(val))
     }
-    fn insert_default<T: Property>(self, val: T::Type) -> (Self, P<T>)
-    where
-        Self: WithDefault<T>,
-    {
-        self._insert_default(val)
+    fn insert_default<T: Property>(self, val: T::Type) -> (Self, P<T>) {
+        if Self::IS_TERMINATOR {
+            (self, P(val))
+        } else if type_id::<T>() == type_id::<Self::Top>() {
+            let (rest, top) = self._into_parts();
+            let top_as_pt = unsafe { std::mem::transmute_copy::<P<Self::Top>, P<T>>(&top) };
+            forget(top);
+            let p_val = P(val);
+            let p_val_as_p_top = unsafe { std::mem::transmute_copy::<P<T>, P<Self::Top>>(&p_val) };
+            forget(p_val);
+            let new_self = Self::_from_parts(rest, p_val_as_p_top);
+            (new_self, top_as_pt)
+        } else {
+            let (rest, top) = self._into_parts();
+            let (rest, p_val) = rest.insert_default(val);
+            let new_self = Self::_from_parts(rest, top);
+            (new_self, p_val)
+        }
     }
-    fn get_or<'a, T: Property>(&'a self, val: &'a T::Type) -> &'a T::Type
-    where
-        Self: WithDefault<T>,
-    {
-        self._get_or(val)
+    fn get_or<'a, T: Property>(&'a self, val: &'a T::Type) -> &'a T::Type {
+        if Self::IS_TERMINATOR {
+            val
+        } else if type_id::<T>() == type_id::<Self::Top>() {
+            let top = &self._as_parts().1 .0;
+            let top_as_t = (top as *const <Self::Top as Property>::Type).cast::<T::Type>();
+            unsafe { &*top_as_t }
+        } else {
+            self._as_parts().0.get_or::<T>(val)
+        }
     }
     fn get<A: Property>(&self) -> &A::Type
     where
@@ -62,50 +87,42 @@ pub trait Record: Sized {
     }
 }
 
-impl Record for () {}
-impl<A: Record, B: Property> Record for (A, P<B>) {}
-
-pub trait WithDefault<T: Property>: Record {
-    fn _insert_default(self, val: T::Type) -> (Self, P<T>);
-    fn _get_or<'a>(&'a self, val: &'a T::Type) -> &'a T::Type;
+impl Property for () {
+    type Type = ();
 }
 
-impl<A: Property> WithDefault<A> for () {
-    fn _insert_default(self, val: A::Type) -> (Self, P<A>) {
-        (self, P(val))
+impl Record for () {
+    type Rest = ();
+    type Top = ();
+    const IS_TERMINATOR: bool = true;
+    fn _as_parts(&self) -> &(Self::Rest, P<Self::Top>) {
+        unreachable!()
     }
-    fn _get_or<'a>(&'a self, val: &'a A::Type) -> &'a A::Type {
-        val
+    fn _as_mut_parts(&mut self) -> &mut (Self::Rest, P<Self::Top>) {
+        unreachable!()
     }
-}
-
-impl<T, A, B> WithDefault<A> for (T, P<B>)
-where
-    T: WithDefault<A>,
-    A: Property,
-    B: Property,
-    IsNot<A, ()>: True,
-    IsNot<A, B>: True,
-{
-    fn _insert_default(self, val: A::Type) -> (Self, P<A>) {
-        let (inner_self, a) = self.0._insert_default(val);
-        ((inner_self, self.1), a)
+    fn _into_parts(self) -> (Self::Rest, P<Self::Top>) {
+        unreachable!()
     }
-    fn _get_or<'a>(&'a self, val: &'a A::Type) -> &'a A::Type {
-        self.0._get_or(val)
+    fn _from_parts(_rest: Self::Rest, _top: P<Self::Top>) -> Self {
+        unreachable!()
     }
 }
-
-impl<T, A> WithDefault<A> for (T, P<A>)
-where
-    T: Record,
-    A: Property,
-{
-    fn _insert_default(self, val: <A as Property>::Type) -> (Self, P<A>) {
-        ((self.0, P(val)), self.1)
+impl<A: Record, B: Property> Record for (A, P<B>) {
+    const IS_TERMINATOR: bool = false;
+    type Rest = A;
+    type Top = B;
+    fn _as_parts(&self) -> &(Self::Rest, P<Self::Top>) {
+        self
     }
-    fn _get_or<'a>(&'a self, _val: &'a <A as Property>::Type) -> &'a <A as Property>::Type {
-        &self.1 .0
+    fn _as_mut_parts(&mut self) -> &mut (Self::Rest, P<Self::Top>) {
+        self
+    }
+    fn _into_parts(self) -> (Self::Rest, P<Self::Top>) {
+        self
+    }
+    fn _from_parts(rest: Self::Rest, top: P<Self::Top>) -> Self {
+        (rest, top)
     }
 }
 
@@ -153,7 +170,7 @@ where
     }
 }
 
-pub trait PartialTake<T: Record>: Record {
+pub trait PartialTake<T>: Record {
     fn _partial_take(&mut self) -> T;
 }
 
@@ -165,7 +182,6 @@ impl<A, T, U> PartialTake<(T, P<A>)> for U
 where
     A: Property,
     A::Type: Default,
-    T: Record,
     U: Has<A> + PartialTake<T>,
 {
     fn _partial_take(&mut self) -> (T, P<A>) {
@@ -214,7 +230,7 @@ mod tests {
         assert_eq!(age, 15);
     }
 
-    fn default_is_admin<T: WithDefault<IsAdmin>>(val: T) -> (T, P<IsAdmin>) {
+    fn default_is_admin<T: Record>(val: T) -> (T, P<IsAdmin>) {
         let val = val.insert_default::<IsAdmin>(false);
         val.get::<IsAdmin>();
         val
@@ -244,7 +260,7 @@ mod tests {
         assert!((height - 1.78).abs() < f64::EPSILON);
     }
 
-    fn generic<T: Has<Age> + Has<Name> + WithDefault<IsAdmin>>(inp: T) -> (String, u8, bool) {
+    fn generic<T: Has<Age> + Has<Name>>(inp: T) -> (String, u8, bool) {
         inp.get::<Age>();
         let mut inp = inp.insert_default::<IsAdmin>(false);
         let ((((), P(name)), P(age)), P(is_admin)) =
