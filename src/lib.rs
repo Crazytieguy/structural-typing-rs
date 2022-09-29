@@ -28,7 +28,7 @@ mod tests {
     impl<T: person::has::name> Named for T {}
     trait Named: person::has::name {
         fn shout_name(&self) -> String {
-            // this borrows Self as Person, so that the fields can be accessed
+            // this borrows Self as person::Struct, so that the fields can be accessed
             let borrowed = self.borrow();
             let uppercase = borrowed.name.to_uppercase();
             match borrowed.age.get() {
