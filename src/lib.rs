@@ -1,14 +1,15 @@
 // TODO: #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
 
+mod access;
 #[macro_use]
-mod struct_based;
+mod partial;
 
 #[cfg(test)]
 mod tests {
     #![allow(dead_code)]
 
-    use crate::struct_based::Access;
+    use crate::access::Access;
     use std::marker::PhantomData;
 
     partial! {person {
