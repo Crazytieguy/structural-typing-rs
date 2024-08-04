@@ -4,44 +4,40 @@ macro_rules! partial {
         mod $name {
             #![allow(non_camel_case_types)]
             #![allow(type_alias_bounds)]
-            use $crate::access::Access;
+            use $crate::presence::Presence;
 
-            #[derive(Debug)]
-            pub struct Struct<$($field: $crate::access::Access<$ty> = $ty),+> {
-                $(pub $field: $field),+
+            pub trait Fields {
+                $(type $field: Presence;)+
             }
 
-            pub trait Interface: ::std::borrow::BorrowMut<Struct<$(Self::$field),+>> + Into<Struct<$(Self::$field),+>> {
-                $(type $field: $crate::access::Access<$ty>;)+
+            pub struct Empty;
+            impl Fields for Empty {
+                $(type $field = $crate::presence::Absent;)+
             }
 
-            impl<$($field: $crate::access::Access<$ty>),+> Interface for Struct<$($field),+> {
-                $(type $field = $field;)+
+            pub struct Struct<F: Fields = Empty> {
+                $(pub $field: <<F as Fields>::$field as Presence>::Output<$ty>),+
             }
 
-            pub type Concrete<T: Interface> = Struct<$(T::$field),+>;
-
-            pub mod has {
-                $(pub trait $field: super::Interface<$field = $ty> {})+
-                $(impl<T: super::Interface<$field = $ty>> $field for T {})+
-            }
-
-            impl<T: Interface, U: Interface> $crate::merge::Merge<U> for T {
-                type Output = Struct<
-                    $(<U::$field as $crate::access::Access<$ty>>::Or<T::$field>),+
-                >;
-                fn merge(self, other: U) -> Self::Output {
-                    let concrete = self.into();
-                    let other = other.into();
-                    Struct {
-                        $($field: other.$field.or(concrete.$field)),+
+            impl Struct {
+                pub fn empty() -> Self {
+                    Self {
+                        $($field: ::std::marker::PhantomData),+
                     }
                 }
             }
 
-            pub fn empty() -> Struct<$(::std::marker::PhantomData<$ty>),+> {
-                Struct {
-                    $($field: ::std::marker::PhantomData),+
+            pub struct Merge<F1: Fields, F2: Fields>(::std::marker::PhantomData<(F1, F2)>);
+
+            impl<F1: Fields, F2: Fields> Fields for Merge<F1, F2> {
+                $(type $field = <<F2 as Fields>::$field as Presence>::Or<<F1 as Fields>::$field>;)+
+            }
+
+            impl<F1: Fields> Struct<F1> {
+                pub fn merge<F2: Fields>(self, other: Struct<F2>) -> Struct<Merge<F1, F2>> {
+                    Struct {
+                        $($field: <<F2 as Fields>::$field as Presence>::or(other.$field, self.$field)),+
+                    }
                 }
             }
         }
