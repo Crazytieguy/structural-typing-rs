@@ -1,4 +1,5 @@
 use crate::parsing::{parse_structural_struct, StructuralStruct};
+use crate::derive::generate_derive_impls;
 use proc_macro2::TokenStream;
 use quote::{quote, format_ident};
 use syn::{DeriveInput, Result};
@@ -13,7 +14,7 @@ pub fn generate_structural(input: DeriveInput) -> Result<TokenStream> {
     let merge_state_def = generate_merge_state(&structural_struct);
     let impl_merge = generate_merge(&structural_struct);
     let impl_require = generate_require(&structural_struct);
-    let impl_derives = generate_derive_impls(&structural_struct);
+    let derive_impls = generate_derive_impls(&structural_struct);
 
     Ok(quote! {
         #state_mod
@@ -23,7 +24,7 @@ pub fn generate_structural(input: DeriveInput) -> Result<TokenStream> {
         #impl_setters
         #impl_merge
         #impl_require
-        #impl_derives
+        #derive_impls
     })
 }
 
@@ -48,7 +49,7 @@ fn generate_struct(structural: &StructuralStruct) -> TokenStream {
     let ident = &structural.ident;
     let (impl_generics, _ty_generics, where_clause) = structural.generics.split_for_impl();
 
-    // Filter out derive attributes - we'll implement them manually
+    // Filter out derive attributes - we implement them manually
     let non_derive_attrs = structural.attrs.iter().filter(|attr| {
         !attr.path().is_ident("derive")
     });
@@ -113,7 +114,13 @@ fn generate_state_mod(structural: &StructuralStruct) -> TokenStream {
     let set_struct_defs = field_pascal_idents.iter().map(|field_pascal| {
         let set_struct_name = format_ident!("Set{}", field_pascal);
         quote! {
-            #[derive(::structural_typing::__private::Clone, ::structural_typing::__private::fmt::Debug)]
+            #[derive(
+                ::structural_typing::__private::Clone,
+                ::structural_typing::__private::fmt::Debug,
+                ::core::cmp::PartialEq,
+                ::core::cmp::Eq,
+                ::core::hash::Hash
+            )]
             pub struct #set_struct_name<S: State>(::structural_typing::__private::PhantomData<fn() -> S>);
         }
     });
@@ -140,6 +147,88 @@ fn generate_state_mod(structural: &StructuralStruct) -> TokenStream {
         }
     });
 
+    // Generate serde impls for state types if serde derives are requested
+    let has_serde = structural.attrs.iter().any(|attr| {
+        if attr.path().is_ident("derive") {
+            let mut found_serde = false;
+            let _ = attr.parse_nested_meta(|meta| {
+                if let Some(ident) = meta.path.get_ident()
+                    && (ident == "Serialize" || ident == "Deserialize")
+                {
+                    found_serde = true;
+                }
+                Ok(())
+            });
+            found_serde
+        } else {
+            false
+        }
+    });
+
+    let serde_impls = if has_serde {
+        let empty_serde = quote! {
+            impl ::serde::Serialize for Empty {
+                fn serialize<S>(&self, serializer: S) -> ::core::result::Result<S::Ok, S::Error>
+                where S: ::serde::Serializer {
+                    serializer.serialize_unit()
+                }
+            }
+
+            impl<'de> ::serde::Deserialize<'de> for Empty {
+                fn deserialize<D>(deserializer: D) -> ::core::result::Result<Self, D::Error>
+                where D: ::serde::Deserializer<'de> {
+                    struct EmptyVisitor;
+                    impl<'de> ::serde::de::Visitor<'de> for EmptyVisitor {
+                        type Value = Empty;
+                        fn expecting(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                            f.write_str("unit")
+                        }
+                        fn visit_unit<E>(self) -> ::core::result::Result<Empty, E> {
+                            ::core::result::Result::Ok(Empty(()))
+                        }
+                    }
+                    deserializer.deserialize_unit(EmptyVisitor)
+                }
+            }
+        };
+
+        let set_serde = field_pascal_idents.iter().map(|field_pascal| {
+            let set_struct_name = format_ident!("Set{}", field_pascal);
+            quote! {
+                impl<S: State> ::serde::Serialize for #set_struct_name<S> {
+                    fn serialize<Ser>(&self, serializer: Ser) -> ::core::result::Result<Ser::Ok, Ser::Error>
+                    where Ser: ::serde::Serializer {
+                        serializer.serialize_unit()
+                    }
+                }
+
+                impl<'de, S: State> ::serde::Deserialize<'de> for #set_struct_name<S> {
+                    fn deserialize<D>(deserializer: D) -> ::core::result::Result<Self, D::Error>
+                    where D: ::serde::Deserializer<'de> {
+                        struct SetVisitor<S>(::core::marker::PhantomData<S>);
+                        impl<'de, S: State> ::serde::de::Visitor<'de> for SetVisitor<S> {
+                            type Value = #set_struct_name<S>;
+                            fn expecting(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                                f.write_str("unit")
+                            }
+                            fn visit_unit<E>(self) -> ::core::result::Result<#set_struct_name<S>, E> {
+                                ::core::result::Result::Ok(#set_struct_name(::core::marker::PhantomData))
+                            }
+                        }
+                        deserializer.deserialize_unit(SetVisitor(::core::marker::PhantomData))
+                    }
+                }
+            }
+        });
+
+        quote! {
+            #empty_serde
+            #( #set_serde )*
+        }
+    } else {
+        quote! {}
+    };
+
     quote! {
         #[allow(non_camel_case_types)]
         pub mod #state_mod_name {
@@ -147,7 +236,14 @@ fn generate_state_mod(structural: &StructuralStruct) -> TokenStream {
                 #( #assoc_type_decls )*
             }
 
-            #[derive(::structural_typing::__private::Clone, ::structural_typing::__private::fmt::Debug)]
+            #[derive(
+                ::structural_typing::__private::Clone,
+                ::structural_typing::__private::fmt::Debug,
+                ::core::cmp::PartialEq,
+                ::core::cmp::Eq,
+                ::core::hash::Hash,
+                ::core::default::Default
+            )]
             pub struct Empty(());
 
             impl State for Empty {
@@ -156,6 +252,8 @@ fn generate_state_mod(structural: &StructuralStruct) -> TokenStream {
 
             #( #set_struct_defs )*
             #( #set_struct_impls )*
+
+            #serde_impls
         }
     }
 }
@@ -343,139 +441,6 @@ fn generate_require(structural: &StructuralStruct) -> TokenStream {
     quote! {
         impl #impl_generics<__State: #state_mod_name::State> #struct_ident #ty_generics<__State> #where_clause {
             #( #require_methods )*
-        }
-    }
-}
-
-fn generate_derive_impls(structural: &StructuralStruct) -> TokenStream {
-    // Find derive attributes and extract trait names
-    let mut derives = Vec::new();
-    for attr in &structural.attrs {
-        if attr.path().is_ident("derive") {
-            let _ = attr.parse_nested_meta(|meta| {
-                if let Some(ident) = meta.path.get_ident() {
-                    derives.push(ident.to_string());
-                }
-                Ok(())
-            });
-        }
-    }
-
-    let struct_ident = &structural.ident;
-    let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
-
-    let mut impls = Vec::new();
-
-    // Generate Debug impl if requested
-    if derives.iter().any(|d| d == "Debug") {
-        let debug_impl = generate_debug_impl(structural, &state_mod_name);
-        impls.push(debug_impl);
-    }
-
-    // Generate Clone impl if requested
-    if derives.iter().any(|d| d == "Clone") {
-        let clone_impl = generate_clone_impl(structural, &state_mod_name);
-        impls.push(clone_impl);
-    }
-
-    quote! {
-        #( #impls )*
-    }
-}
-
-fn generate_debug_impl(
-    structural: &StructuralStruct,
-    state_mod_name: &syn::Ident,
-) -> TokenStream {
-    let struct_ident = &structural.ident;
-    let struct_name = struct_ident.to_string();
-    let (_impl_generics, ty_generics, where_clause) = structural.generics.split_for_impl();
-
-    // Get the original generic params to include them in the impl
-    let generics = &structural.generics;
-    let mut impl_generics = generics.clone();
-
-    // Add __State parameter
-    impl_generics.params.push(syn::parse_quote!(__State: #state_mod_name::State));
-
-    let always_fields = structural.fields.iter().filter(|f| f.always_present);
-    let stateful_fields = structural.fields.iter().filter(|f| !f.always_present).collect::<Vec<_>>();
-
-    let always_field_names = always_fields.clone().map(|f| f.ident.to_string());
-    let always_field_idents = always_fields.map(|f| &f.ident);
-
-    let stateful_field_names = stateful_fields.iter().map(|f| f.ident.to_string());
-    let stateful_field_idents = stateful_fields.iter().map(|f| &f.ident);
-
-    let stateful_bounds = stateful_fields.iter().map(|f| {
-        let pascal = format_ident!("{}", to_pascal_case(&f.ident.to_string()));
-        let ty = &f.ty;
-        quote! {
-            <<__State as #state_mod_name::State>::#pascal as ::structural_typing::Presence>::Output<#ty>: ::structural_typing::__private::fmt::Debug
-        }
-    });
-
-    let (impl_gen, _, _) = impl_generics.split_for_impl();
-
-    quote! {
-        impl #impl_gen ::structural_typing::__private::fmt::Debug
-            for #struct_ident #ty_generics<__State>
-        where
-            #where_clause
-            __State: ::structural_typing::__private::fmt::Debug,
-            #( #stateful_bounds, )*
-        {
-            fn fmt(&self, f: &mut ::structural_typing::__private::fmt::Formatter<'_>) -> ::structural_typing::__private::fmt::Result {
-                f.debug_struct(#struct_name)
-                    #( .field(#always_field_names, &self.#always_field_idents) )*
-                    #( .field(#stateful_field_names, &self.#stateful_field_idents) )*
-                    .finish()
-            }
-        }
-    }
-}
-
-fn generate_clone_impl(
-    structural: &StructuralStruct,
-    state_mod_name: &syn::Ident,
-) -> TokenStream {
-    let struct_ident = &structural.ident;
-    let (_impl_generics, ty_generics, where_clause) = structural.generics.split_for_impl();
-
-    // Get the original generic params to include them in the impl
-    let generics = &structural.generics;
-    let mut impl_generics = generics.clone();
-
-    // Add __State parameter
-    impl_generics.params.push(syn::parse_quote!(__State: #state_mod_name::State));
-
-    let field_idents = structural.fields.iter().map(|f| &f.ident);
-    let stateful_fields = structural.fields.iter().filter(|f| !f.always_present).collect::<Vec<_>>();
-
-    let stateful_bounds = stateful_fields.iter().map(|f| {
-        let pascal = format_ident!("{}", to_pascal_case(&f.ident.to_string()));
-        let ty = &f.ty;
-        quote! {
-            <<__State as #state_mod_name::State>::#pascal as ::structural_typing::Presence>::Output<#ty>: ::structural_typing::__private::Clone
-        }
-    });
-
-    let (impl_gen, _, _) = impl_generics.split_for_impl();
-
-    quote! {
-        impl #impl_gen ::structural_typing::__private::Clone
-            for #struct_ident #ty_generics<__State>
-        where
-            #where_clause
-            __State: ::structural_typing::__private::Clone,
-            #( #stateful_bounds, )*
-        {
-            fn clone(&self) -> Self {
-                Self {
-                    #( #field_idents: self.#field_idents.clone(), )*
-                    _phantom: ::structural_typing::__private::PhantomData,
-                }
-            }
         }
     }
 }

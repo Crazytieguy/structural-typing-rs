@@ -10,6 +10,7 @@ use syn::{parse_macro_input, DeriveInput};
 
 mod codegen;
 mod parsing;
+mod derive;
 
 /// Attribute macro for creating structurally-typed structs.
 ///

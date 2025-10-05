@@ -8,6 +8,15 @@ struct Config {
     description: String,
 }
 
+impl<S> Config<S>
+where
+    S: config_state::State,
+{
+    fn get_version(&self) -> u32 {
+        self.version
+    }
+}
+
 #[test]
 fn test_always_present_in_empty() {
     // Always-present fields must be provided to empty()
@@ -56,15 +65,6 @@ fn test_always_present_in_merge() {
 
 #[test]
 fn test_always_present_in_impl() {
-    impl<S> Config<S>
-    where
-        S: config_state::State,
-    {
-        fn get_version(&self) -> u32 {
-            self.version
-        }
-    }
-
     let config = Config::empty(42);
     assert_eq!(config.get_version(), 42);
 
