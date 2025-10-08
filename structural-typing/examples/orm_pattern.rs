@@ -68,7 +68,7 @@ impl Database {
 
         // Create the user with database-managed fields
         // Start with required fields, then add database fields, then optional fields
-        let db_user = User::empty(user.username.clone(), user.email.clone())
+        let db_user = User::new(user.username.clone(), user.email.clone())
             .id(id)
             .created_at(now.clone())
             .updated_at(now)
@@ -88,7 +88,7 @@ impl Database {
         let existing = self.users.get(&id)?.clone();
 
         // Merge updates with existing data - use update value if present, otherwise keep existing
-        let updated = User::empty(existing.username.clone(), existing.email.clone())
+        let updated = User::new(existing.username.clone(), existing.email.clone())
             .id(existing.id)
             .created_at(existing.created_at.clone())
             .updated_at("2024-01-01T00:00:01Z".to_string())
@@ -135,7 +135,7 @@ fn main() {
 
     // 1. Create new users with minimal data
     println!("1. Creating new users (no ID yet):");
-    let new_user = User::empty("alice".into(), "alice@example.com".into());
+    let new_user = User::new("alice".into(), "alice@example.com".into());
     println!("   New user: {} <{}>", new_user.username, new_user.email);
     println!("   Has ID? {}", <_ as Access<i64>>::get(&new_user.id).is_some());
 
@@ -147,7 +147,7 @@ fn main() {
 
     // 3. Create user with partial profile
     println!("\n3. Creating user with partial profile:");
-    let new_user_with_profile = User::empty("bob".into(), "bob@example.com".into())
+    let new_user_with_profile = User::new("bob".into(), "bob@example.com".into())
         .full_name("Bob Smith".into());
     let bob = db.insert(new_user_with_profile);
     println!("   {}", bob.display_with_id());
@@ -155,8 +155,8 @@ fn main() {
 
     // 4. Update user with more profile information
     println!("\n4. Updating user with more info:");
-    let updates = User::empty("alice".into(), "alice@example.com".into())
-        .full_name("Alice Johnson".into())
+    let updates = User::new("alice".into(), "alice@example.com".into())
+        .full_name("Alice Tzfati".into())
         .bio("Rust enthusiast and open source contributor".into())
         .avatar_url("https://example.com/alice.jpg".into());
 
@@ -167,7 +167,7 @@ fn main() {
 
     // 5. Partial updates - only bio
     println!("\n5. Partial update (bio only):");
-    let bio_update = User::empty("bob".into(), "bob@example.com".into())
+    let bio_update = User::new("bob".into(), "bob@example.com".into())
         .bio("Software engineer".into());
 
     if let Some(updated) = db.update(bob.id, bio_update) {

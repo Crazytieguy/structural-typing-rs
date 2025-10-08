@@ -36,11 +36,11 @@ fn main() {
     println!("=== Merging Patterns Example ===\n");
 
     println!("1. Basic merge - combining partial configurations:");
-    let defaults = Config::empty("MyApp".into())
+    let defaults = Config::new("MyApp".into())
         .host("localhost".into())
         .port(8080);
 
-    let overrides = Config::empty("MyApp".into())
+    let overrides = Config::new("MyApp".into())
         .port(3000)
         .database_url("postgres://localhost/mydb".into());
 
@@ -52,21 +52,21 @@ fn main() {
 
     println!("\n2. Multiple source merging (CLI > Env > Config File > Defaults):");
 
-    let defaults = Config::empty("MyApp".into())
+    let defaults = Config::new("MyApp".into())
         .host("localhost".into())
         .port(8080)
         .cache_size(1024)
         .log_level("info".into());
 
-    let config_file = Config::empty("MyApp".into())
+    let config_file = Config::new("MyApp".into())
         .host("prod.example.com".into())
         .database_url("postgres://prod/db".into());
 
-    let env_vars = Config::empty("MyApp".into())
+    let env_vars = Config::new("MyApp".into())
         .port(9000)
         .log_level("debug".into());
 
-    let cli_args = Config::empty("MyApp".into())
+    let cli_args = Config::new("MyApp".into())
         .port(3000);
 
     let final_config = defaults
@@ -88,12 +88,12 @@ fn main() {
 
     println!("\n3. Merging user preferences over time:");
 
-    let initial_prefs = UserPreferences::empty(1)
+    let initial_prefs = UserPreferences::new(1)
         .theme("light".into())
         .language("en".into());
     println!("   Initial: theme=light, language=en");
 
-    let update1 = UserPreferences::empty(1)
+    let update1 = UserPreferences::new(1)
         .timezone("America/New_York".into())
         .notifications_enabled(true);
     let prefs_v1 = initial_prefs.merge(update1);
@@ -101,7 +101,7 @@ fn main() {
     println!("     Theme: {}", prefs_v1.theme);
     println!("     Timezone: {}", prefs_v1.timezone);
 
-    let update2 = UserPreferences::empty(1)
+    let update2 = UserPreferences::new(1)
         .theme("dark".into())
         .email_frequency("daily".into());
     let prefs_v2 = prefs_v1.merge(update2);
@@ -112,10 +112,10 @@ fn main() {
 
     println!("\n4. Merging partial config with defaults:");
 
-    let partial_config = Config::empty("MyApp".into())
+    let partial_config = Config::new("MyApp".into())
         .database_url("postgres://localhost/test".into());
 
-    let defaults = Config::empty("MyApp".into())
+    let defaults = Config::new("MyApp".into())
         .host("localhost".into())
         .port(8080)
         .cache_size(1024)
@@ -133,17 +133,17 @@ fn main() {
 
     println!("\n5. Merging from multiple users/sources:");
 
-    let _user1_prefs = UserPreferences::empty(1)
+    let _user1_prefs = UserPreferences::new(1)
         .theme("dark".into())
         .language("en".into())
         .notifications_enabled(true);
 
-    let _user2_prefs = UserPreferences::empty(2)
+    let _user2_prefs = UserPreferences::new(2)
         .theme("light".into())
         .language("es".into())
         .timezone("Europe/Madrid".into());
 
-    let _user3_prefs = UserPreferences::empty(3)
+    let _user3_prefs = UserPreferences::new(3)
         .language("fr".into())
         .email_frequency("weekly".into());
 
@@ -151,12 +151,12 @@ fn main() {
     println!("   User 2: theme=light, language=es, timezone=Europe/Madrid");
     println!("   User 3: language=fr, email_frequency=weekly");
 
-    let combined = UserPreferences::empty(999)
+    let combined = UserPreferences::new(999)
         .theme("dark".into())
         .language("en".into())
         .notifications_enabled(true)
-        .merge(UserPreferences::empty(999).timezone("Europe/Madrid".into()))
-        .merge(UserPreferences::empty(999).email_frequency("weekly".into()));
+        .merge(UserPreferences::new(999).timezone("Europe/Madrid".into()))
+        .merge(UserPreferences::new(999).email_frequency("weekly".into()));
 
     println!("\n   Combined preferences (picking from all):");
     println!("     Theme: {}", combined.theme);
@@ -166,15 +166,15 @@ fn main() {
 
     println!("\n6. Empty merge behavior:");
 
-    let empty_config = Config::empty("MyApp".into());
-    let with_data = Config::empty("MyApp".into())
+    let empty_config = Config::new("MyApp".into());
+    let with_data = Config::new("MyApp".into())
         .host("example.com".into())
         .port(8080);
 
     let result = empty_config.merge(with_data.clone());
     println!("   Empty merged with data: host={}, port={}", result.host, result.port);
 
-    let result2 = with_data.merge(Config::empty("MyApp".into()));
+    let result2 = with_data.merge(Config::new("MyApp".into()));
     println!("   Data merged with empty: host={}, port={}", result2.host, result2.port);
     println!("   ✓ Data preserved in both directions");
 

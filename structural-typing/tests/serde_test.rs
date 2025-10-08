@@ -8,9 +8,6 @@ struct Person {
     age: u8,
 }
 
-// Type alias for the fully-populated state
-type FullPerson = Person<person_state::SetAge<person_state::SetName<person_state::Empty>>>;
-
 #[test]
 fn test_serialize() {
     let person = Person::empty()

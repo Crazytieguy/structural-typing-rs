@@ -147,7 +147,7 @@ impl ValidationService {
             raw.username.get().ok_or_else(|| ValidationError::InvalidUsername("Username required".into()))?
         )?;
 
-        Ok(UserRegistration::empty(raw.request_id.clone())
+        Ok(UserRegistration::new(raw.request_id.clone())
             .email(email)
             .username(username))
     }
@@ -164,7 +164,7 @@ impl ValidationService {
             raw.password.get().ok_or_else(|| ValidationError::WeakPassword("Password required".into()))?
         )?;
 
-        Ok(UserRegistration::empty(validated_basic.request_id.clone())
+        Ok(UserRegistration::new(validated_basic.request_id.clone())
             .email(validated_basic.email.clone())
             .username(validated_basic.username.clone())
             .password(password))
@@ -185,7 +185,7 @@ impl ValidationService {
             *raw.terms_accepted.get().ok_or(ValidationError::TermsNotAccepted)?
         )?;
 
-        Ok(UserRegistration::empty(validated_security.request_id.clone())
+        Ok(UserRegistration::new(validated_security.request_id.clone())
             .email(validated_security.email.clone())
             .username(validated_security.username.clone())
             .password(validated_security.password.clone())
@@ -219,7 +219,7 @@ fn main() {
     let mut service = ValidationService::new();
 
     println!("1. Valid registration - all stages pass:");
-    let raw = UserRegistration::empty("req-001".into())
+    let raw = UserRegistration::new("req-001".into())
         .username("alice_2024".into())
         .email("alice@example.com".into())
         .password("SecurePass123".into())
@@ -239,7 +239,7 @@ fn main() {
     }
 
     println!("\n2. Invalid email:");
-    let raw = UserRegistration::empty("req-002".into())
+    let raw = UserRegistration::new("req-002".into())
         .username("bob".into())
         .email("not-an-email".into())
         .password("SecurePass123".into())
@@ -252,7 +252,7 @@ fn main() {
     }
 
     println!("\n3. Weak password:");
-    let raw = UserRegistration::empty("req-003".into())
+    let raw = UserRegistration::new("req-003".into())
         .username("charlie".into())
         .email("charlie@example.com".into())
         .password("weak".into())
@@ -267,7 +267,7 @@ fn main() {
     }
 
     println!("\n4. Partial validation - stage by stage:");
-    let raw = UserRegistration::empty("req-004".into())
+    let raw = UserRegistration::new("req-004".into())
         .username("diana".into())
         .email("diana@example.com".into())
         .password("GoodPass789".into())
@@ -289,7 +289,7 @@ fn main() {
     service.register_user(after_stage3);
 
     println!("\n5. Duplicate username:");
-    let raw = UserRegistration::empty("req-005".into())
+    let raw = UserRegistration::new("req-005".into())
         .username("alice_2024".into())
         .email("alice2@example.com".into())
         .password("AnotherPass456".into())
@@ -302,14 +302,14 @@ fn main() {
     }
 
     println!("\n6. Merging partial data from different sources:");
-    let basic_info = UserRegistration::empty("req-006".into())
+    let basic_info = UserRegistration::new("req-006".into())
         .username("eve".into())
         .email("eve@example.com".into());
 
-    let security_info = UserRegistration::empty("req-006".into())
+    let security_info = UserRegistration::new("req-006".into())
         .password("StrongPass999".into());
 
-    let profile_info = UserRegistration::empty("req-006".into())
+    let profile_info = UserRegistration::new("req-006".into())
         .age(19)
         .terms_accepted(true);
 

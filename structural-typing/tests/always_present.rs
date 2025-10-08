@@ -18,9 +18,9 @@ where
 }
 
 #[test]
-fn test_always_present_in_empty() {
-    // Always-present fields must be provided to empty()
-    let config = Config::empty(1);
+fn test_always_present_in_new() {
+    // Always-present fields must be provided to new()
+    let config = Config::new(1);
 
     // Always-present fields are directly accessible
     assert_eq!(config.version, 1);
@@ -28,7 +28,7 @@ fn test_always_present_in_empty() {
 
 #[test]
 fn test_always_present_setter_no_state_change() {
-    let config = Config::empty(1);
+    let config = Config::new(1);
 
     // Setter for always-present field doesn't change state
     let config = config.version(2);
@@ -40,7 +40,7 @@ fn test_always_present_setter_no_state_change() {
 
 #[test]
 fn test_always_present_with_stateful() {
-    let config = Config::empty(1);
+    let config = Config::new(1);
 
     // Set a stateful field
     let config = config.name("test".into());
@@ -52,8 +52,8 @@ fn test_always_present_with_stateful() {
 
 #[test]
 fn test_always_present_in_merge() {
-    let config1 = Config::empty(1).name("first".into());
-    let config2 = Config::empty(2).description("second desc".into());
+    let config1 = Config::new(1).name("first".into());
+    let config2 = Config::new(2).description("second desc".into());
 
     // Merge should take always-present field from 'other' (config2)
     let merged = config1.merge(config2);
@@ -65,7 +65,7 @@ fn test_always_present_in_merge() {
 
 #[test]
 fn test_always_present_in_impl() {
-    let config = Config::empty(42);
+    let config = Config::new(42);
     assert_eq!(config.get_version(), 42);
 
     let config = config.name("test".into());
@@ -74,7 +74,7 @@ fn test_always_present_in_impl() {
 
 #[test]
 fn test_no_require_for_always_present() {
-    let config = Config::empty(1);
+    let config = Config::new(1);
 
     // require_version should not exist because version is always present
     // This test verifies that by trying to compile code that would fail if it existed

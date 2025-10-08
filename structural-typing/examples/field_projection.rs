@@ -23,26 +23,6 @@ struct User {
     api_key: String,
 }
 
-type FullUser = User<
-    user_state::SetApiKey<
-        user_state::SetLastLoginIp<
-            user_state::SetAvatarUrl<
-                user_state::SetBio<
-                    user_state::SetFullName<
-                        user_state::SetPasswordHash<
-                            user_state::SetEmail<
-                                user_state::SetUsername<
-                                    user_state::Empty
-                                >
-                            >
-                        >
-                    >
-                >
-            >
-        >
-    >
->;
-
 type PublicProfile = User<
     user_state::SetAvatarUrl<
         user_state::SetBio<
@@ -75,7 +55,7 @@ type BasicInfo = User<
 
 impl FullUser {
     fn to_public_profile(&self) -> PublicProfile {
-        User::empty(self.id)
+        User::new(self.id)
             .username(self.username.clone())
             .full_name(self.full_name.clone())
             .bio(self.bio.clone())
@@ -83,14 +63,14 @@ impl FullUser {
     }
 
     fn to_admin_view(&self) -> AdminView {
-        User::empty(self.id)
+        User::new(self.id)
             .username(self.username.clone())
             .email(self.email.clone())
             .last_login_ip(self.last_login_ip.clone())
     }
 
     fn to_basic_info(&self) -> BasicInfo {
-        User::empty(self.id)
+        User::new(self.id)
             .username(self.username.clone())
             .email(self.email.clone())
     }
@@ -156,11 +136,11 @@ fn main() {
     println!("=== Field Projection Example ===\n");
 
     println!("1. Creating a full user (with sensitive data):");
-    let full_user: FullUser = User::empty(1)
+    let full_user: FullUser = User::new(1)
         .username("alice".into())
         .email("alice@example.com".into())
         .password_hash("$2b$12$abcdef...".into())
-        .full_name("Alice Johnson".into())
+        .full_name("Alice Tzfati".into())
         .bio("Software engineer and Rust enthusiast".into())
         .avatar_url("https://example.com/alice.jpg".into())
         .last_login_ip("192.168.1.100".into())
@@ -198,7 +178,7 @@ fn main() {
     println!("   Admin view has email: {}", admin.email);
 
     println!("\n7. Creating partial users directly:");
-    let minimal = User::empty(2)
+    let minimal = User::new(2)
         .username("bob".into())
         .email("bob@example.com".into());
     println!("   Created user with only username and email");
@@ -208,14 +188,14 @@ fn main() {
     println!("\n8. Different views for different contexts:");
 
     let users = vec![
-        User::empty(1).username("alice".into()).email("alice@example.com".into()).full_name("Alice".into()).bio("Rust dev".into()),
-        User::empty(2).username("bob".into()).email("bob@example.com".into()).full_name("Bob".into()).bio("Go dev".into()),
-        User::empty(3).username("carol".into()).email("carol@example.com".into()).full_name("Carol".into()).bio("Python dev".into()),
+        User::new(1).username("alice".into()).email("alice@example.com".into()).full_name("Alice".into()).bio("Rust dev".into()),
+        User::new(2).username("bob".into()).email("bob@example.com".into()).full_name("Bob".into()).bio("Go dev".into()),
+        User::new(3).username("carol".into()).email("carol@example.com".into()).full_name("Carol".into()).bio("Python dev".into()),
     ];
 
     println!("\n   Public directory:");
     for user in &users {
-        let public = User::empty(user.id)
+        let public = User::new(user.id)
             .username(user.username.clone())
             .full_name(user.full_name.clone())
             .bio(user.bio.clone());

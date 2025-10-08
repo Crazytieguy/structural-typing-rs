@@ -9,20 +9,24 @@ pub fn generate_structural(input: DeriveInput) -> Result<TokenStream> {
 
     let struct_def = generate_struct(&structural_struct);
     let state_mod = generate_state_mod(&structural_struct);
+    let type_aliases = generate_type_aliases(&structural_struct);
     let impl_empty = generate_empty_impl(&structural_struct);
     let impl_setters = generate_setters(&structural_struct);
     let merge_state_def = generate_merge_state(&structural_struct);
     let impl_merge = generate_merge(&structural_struct);
+    let _impl_update = generate_update(&structural_struct);
     let impl_require = generate_require(&structural_struct);
     let derive_impls = generate_derive_impls(&structural_struct);
 
     Ok(quote! {
         #state_mod
         #struct_def
+        #type_aliases
         #merge_state_def
         #impl_empty
         #impl_setters
         #impl_merge
+        // #impl_update // TODO: Fix type errors
         #impl_require
         #derive_impls
     })
@@ -83,6 +87,31 @@ fn generate_struct(structural: &StructuralStruct) -> TokenStream {
             )*
             _phantom: ::structural_typing::__private::PhantomData<__State>,
         }
+    }
+}
+
+fn generate_type_aliases(structural: &StructuralStruct) -> TokenStream {
+    let struct_ident = &structural.ident;
+    let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
+    let full_alias_name = format_ident!("Full{}", struct_ident);
+
+    let stateful_fields: Vec<_> = structural.fields.iter()
+        .filter(|f| !f.always_present)
+        .collect();
+
+    if stateful_fields.is_empty() {
+        return quote! {};
+    }
+
+    let mut state_type = quote! { #state_mod_name::Empty };
+    for field in &stateful_fields {
+        let pascal = format_ident!("{}", to_pascal_case(&field.ident.to_string()));
+        let set_struct = format_ident!("Set{}", pascal);
+        state_type = quote! { #state_mod_name::#set_struct<#state_type> };
+    }
+
+    quote! {
+        pub type #full_alias_name = #struct_ident<#state_type>;
     }
 }
 
@@ -266,6 +295,8 @@ fn generate_empty_impl(structural: &StructuralStruct) -> TokenStream {
     let always_fields = structural.fields.iter().filter(|f| f.always_present);
     let stateful_fields = structural.fields.iter().filter(|f| !f.always_present);
 
+    let has_always_fields = structural.fields.iter().any(|f| f.always_present);
+
     let always_params = always_fields.clone().map(|f| {
         let field_ident = &f.ident;
         let field_type = &f.ty;
@@ -284,9 +315,15 @@ fn generate_empty_impl(structural: &StructuralStruct) -> TokenStream {
         }
     });
 
+    let method_name = if has_always_fields {
+        quote! { new }
+    } else {
+        quote! { empty }
+    };
+
     quote! {
         impl #impl_generics #ident #ty_generics #where_clause {
-            pub fn empty(#( #always_params ),*) -> Self {
+            pub fn #method_name(#( #always_params ),*) -> Self {
                 Self {
                     #( #always_inits, )*
                     #( #stateful_inits, )*
@@ -408,6 +445,52 @@ fn generate_merge(structural: &StructuralStruct) -> TokenStream {
                     #( #merge_field_assigns, )*
                     _phantom: ::structural_typing::__private::PhantomData,
                 }
+            }
+        }
+    }
+}
+
+fn generate_update(structural: &StructuralStruct) -> TokenStream {
+    let struct_ident = &structural.ident;
+    let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
+    let (impl_generics, ty_generics, where_clause) = structural.generics.split_for_impl();
+
+    let stateful_fields: Vec<_> = structural.fields.iter()
+        .filter(|f| !f.always_present)
+        .collect();
+
+    let update_assignments = structural.fields.iter().map(|field| {
+        let ident = &field.ident;
+        if field.always_present {
+            quote! {
+                self.#ident = other.#ident;
+            }
+        } else {
+            quote! {
+                if let ::core::option::Option::Some(val) = ::structural_typing::Access::get(&other.#ident) {
+                    self.#ident = val.clone();
+                }
+            }
+        }
+    });
+
+    let other_field_bounds = stateful_fields.iter().map(|f| {
+        let pascal = format_ident!("{}", to_pascal_case(&f.ident.to_string()));
+        quote! {
+            __State2::#pascal: ::structural_typing::Presence
+        }
+    });
+
+    quote! {
+        impl #impl_generics<__State: #state_mod_name::State> #struct_ident #ty_generics<__State> #where_clause {
+            pub fn update<__State2: #state_mod_name::State>(
+                &mut self,
+                other: #struct_ident #ty_generics<__State2>
+            )
+            where
+                #( #other_field_bounds, )*
+            {
+                #( #update_assignments )*
             }
         }
     }
