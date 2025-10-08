@@ -86,6 +86,7 @@ fn generate_struct(structural: &StructuralStruct) -> TokenStream {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn generate_state_mod(structural: &StructuralStruct) -> TokenStream {
     let struct_ident = &structural.ident;
     let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
@@ -346,6 +347,7 @@ fn generate_setters(structural: &StructuralStruct) -> TokenStream {
 fn generate_merge_state(structural: &StructuralStruct) -> TokenStream {
     let struct_ident = &structural.ident;
     let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
+    let merge_state_name = format_ident!("__{}MergeState", struct_ident);
 
     // Only stateful fields participate in state merging
     let field_pascal_idents = structural.fields.iter()
@@ -353,9 +355,16 @@ fn generate_merge_state(structural: &StructuralStruct) -> TokenStream {
         .map(|f| format_ident!("{}", to_pascal_case(&f.ident.to_string())));
 
     quote! {
-        struct __MergeState<__S1, __S2>(::structural_typing::__private::PhantomData<(__S1, __S2)>);
+        #[derive(
+            ::structural_typing::__private::Clone,
+            ::structural_typing::__private::fmt::Debug,
+            ::core::cmp::PartialEq,
+            ::core::cmp::Eq,
+            ::core::hash::Hash
+        )]
+        struct #merge_state_name<__S1, __S2>(::structural_typing::__private::PhantomData<(__S1, __S2)>);
 
-        impl<__S1: #state_mod_name::State, __S2: #state_mod_name::State> #state_mod_name::State for __MergeState<__S1, __S2> {
+        impl<__S1: #state_mod_name::State, __S2: #state_mod_name::State> #state_mod_name::State for #merge_state_name<__S1, __S2> {
             #(
                 type #field_pascal_idents = <<__S2 as #state_mod_name::State>::#field_pascal_idents as ::structural_typing::Presence>::Or<<__S1 as #state_mod_name::State>::#field_pascal_idents>;
             )*
@@ -366,6 +375,7 @@ fn generate_merge_state(structural: &StructuralStruct) -> TokenStream {
 fn generate_merge(structural: &StructuralStruct) -> TokenStream {
     let struct_ident = &structural.ident;
     let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
+    let merge_state_name = format_ident!("__{}MergeState", struct_ident);
     let (impl_generics, ty_generics, where_clause) = structural.generics.split_for_impl();
 
     let merge_field_assigns = structural.fields.iter().map(|field| {
@@ -392,7 +402,7 @@ fn generate_merge(structural: &StructuralStruct) -> TokenStream {
             pub fn merge<__State2: #state_mod_name::State>(
                 self,
                 other: #struct_ident #ty_generics<__State2>
-            ) -> #struct_ident #ty_generics<__MergeState<__State, __State2>>
+            ) -> #struct_ident #ty_generics<#merge_state_name<__State, __State2>>
             {
                 #struct_ident {
                     #( #merge_field_assigns, )*

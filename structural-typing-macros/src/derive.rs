@@ -334,6 +334,7 @@ fn generate_deserialize(structural: &StructuralStruct, state_mod_name: &syn::Ide
             {
                 #[derive(::serde::Deserialize)]
                 #[serde(field_identifier, rename_all = "lowercase")]
+                #[allow(non_camel_case_types)]
                 enum Field {
                     #( #field_idents, )*
                 }

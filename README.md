@@ -11,7 +11,7 @@ The main inspirations for this are TypeScript's structural typing, RDF, and [thi
 - **Conditional methods**: Implement methods that only work when specific fields are present
 - **Always-present fields**: Mark fields as required with `#[always]`
 - **Merge support**: Combine partial structs, with later values taking precedence
-- **Derive support**: Automatically implements `Debug`, `Clone`, and other standard traits
+- **Derive support**: Works with standard derives (`Debug`, `Clone`, `PartialEq`, `Eq`, `Hash`) and serde (`Serialize`, `Deserialize`)
 - **Zero runtime cost**: All field presence is tracked via types and compiled away
 - **Clean syntax**: Uses proc macros for ergonomic struct definitions
 
@@ -168,10 +168,17 @@ if let Some(person) = person.require_name() {
 
 ## Examples
 
-See the [examples](structural-typing/examples/) directory for more:
+See the [examples](structural-typing/examples/) directory for comprehensive examples:
 
+### Getting Started
 - [`basic.rs`](structural-typing/examples/basic.rs) - Basic usage and merging
 - [`methods.rs`](structural-typing/examples/methods.rs) - Conditional method implementations
+
+### Real-World Use Cases
+- [`orm_pattern.rs`](structural-typing/examples/orm_pattern.rs) - Database/ORM patterns with ID fields and lifecycle management
+- [`api_validation.rs`](structural-typing/examples/api_validation.rs) - Multi-stage validation pipeline for API inputs
+- [`field_projection.rs`](structural-typing/examples/field_projection.rs) - Field selection for different views (public profile, admin view, etc.)
+- [`merging_patterns.rs`](structural-typing/examples/merging_patterns.rs) - Configuration cascading and progressive data construction
 
 ## Inspiration
 
