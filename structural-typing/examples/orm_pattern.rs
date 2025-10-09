@@ -66,8 +66,7 @@ impl Database {
 
         let now = "2024-01-01T00:00:00Z".to_string();
 
-        // Create the user with database-managed fields
-        // Start with required fields, then add database fields, then optional fields
+        // Create DbUser with database-managed fields and optional profile fields
         let db_user = User::new(user.username.clone(), user.email.clone())
             .id(id)
             .created_at(now.clone())
@@ -85,19 +84,14 @@ impl Database {
     where
         S: user_state::State,
     {
-        let existing = self.users.get(&id)?.clone();
+        let mut existing = self.users.get(&id)?.clone();
 
-        // Merge updates with existing data - use update value if present, otherwise keep existing
-        let updated = User::new(existing.username.clone(), existing.email.clone())
-            .id(existing.id)
-            .created_at(existing.created_at.clone())
-            .updated_at("2024-01-01T00:00:01Z".to_string())
-            .full_name(updates.full_name.get().cloned().unwrap_or_else(|| existing.full_name.clone()))
-            .bio(updates.bio.get().cloned().unwrap_or_else(|| existing.bio.clone()))
-            .avatar_url(updates.avatar_url.get().cloned().unwrap_or_else(|| existing.avatar_url.clone()));
+        // Use the update method to merge changes
+        existing.update(updates);
+        existing.updated_at = "2024-01-01T00:00:01Z".to_string();
 
-        self.users.insert(id, updated.clone());
-        Some(updated)
+        self.users.insert(id, existing.clone());
+        Some(existing)
     }
 
     fn find(&self, id: i64) -> Option<&DbUser> {

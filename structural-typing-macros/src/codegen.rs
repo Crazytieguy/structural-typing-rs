@@ -14,7 +14,8 @@ pub fn generate_structural(input: DeriveInput) -> Result<TokenStream> {
     let impl_setters = generate_setters(&structural_struct);
     let merge_state_def = generate_merge_state(&structural_struct);
     let impl_merge = generate_merge(&structural_struct);
-    let _impl_update = generate_update(&structural_struct);
+    let impl_update = generate_update(&structural_struct);
+    let impl_from = generate_from(&structural_struct);
     let impl_require = generate_require(&structural_struct);
     let derive_impls = generate_derive_impls(&structural_struct);
 
@@ -26,7 +27,8 @@ pub fn generate_structural(input: DeriveInput) -> Result<TokenStream> {
         #impl_empty
         #impl_setters
         #impl_merge
-        // #impl_update // TODO: Fix type errors
+        #impl_update
+        #impl_from
         #impl_require
         #derive_impls
     })
@@ -85,7 +87,7 @@ fn generate_struct(structural: &StructuralStruct) -> TokenStream {
             #(
                 #stateful_vis #stateful_idents: <<__State as #state_mod_name::State>::#stateful_pascal as ::structural_typing::Presence>::Output<#stateful_types>,
             )*
-            _phantom: ::structural_typing::__private::PhantomData<__State>,
+            _phantom: ::structural_typing::__private::PhantomData<fn() -> __State>,
         }
     }
 }
@@ -455,29 +457,20 @@ fn generate_update(structural: &StructuralStruct) -> TokenStream {
     let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
     let (impl_generics, ty_generics, where_clause) = structural.generics.split_for_impl();
 
-    let stateful_fields: Vec<_> = structural.fields.iter()
-        .filter(|f| !f.always_present)
-        .collect();
-
-    let update_assignments = structural.fields.iter().map(|field| {
+    let update_statements = structural.fields.iter().map(|field| {
         let ident = &field.ident;
         if field.always_present {
+            // For always-present fields, always update from other
             quote! {
                 self.#ident = other.#ident;
             }
         } else {
+            // For stateful fields, only update if other has the value
             quote! {
-                if let ::core::option::Option::Some(val) = ::structural_typing::Access::get(&other.#ident) {
-                    self.#ident = val.clone();
+                if let ::core::option::Option::Some(val) = ::structural_typing::Access::remove(other.#ident) {
+                    ::structural_typing::Access::set(&mut self.#ident, val);
                 }
             }
-        }
-    });
-
-    let other_field_bounds = stateful_fields.iter().map(|f| {
-        let pascal = format_ident!("{}", to_pascal_case(&f.ident.to_string()));
-        quote! {
-            __State2::#pascal: ::structural_typing::Presence
         }
     });
 
@@ -486,11 +479,53 @@ fn generate_update(structural: &StructuralStruct) -> TokenStream {
             pub fn update<__State2: #state_mod_name::State>(
                 &mut self,
                 other: #struct_ident #ty_generics<__State2>
-            )
+            ) {
+                #( #update_statements )*
+            }
+        }
+    }
+}
+
+fn generate_from(structural: &StructuralStruct) -> TokenStream {
+    let struct_ident = &structural.ident;
+    let state_mod_name = format_ident!("{}_state", struct_ident.to_string().to_lowercase());
+    let (impl_generics, ty_generics, where_clause) = structural.generics.split_for_impl();
+
+    let always_fields: Vec<_> = structural.fields.iter().filter(|f| f.always_present).collect();
+    let stateful_fields: Vec<_> = structural.fields.iter().filter(|f| !f.always_present).collect();
+
+    let always_idents = always_fields.iter().map(|f| &f.ident);
+
+    let stateful_idents = stateful_fields.iter().map(|f| &f.ident);
+    let stateful_types = stateful_fields.iter().map(|f| &f.ty);
+
+    let presence_convert_bounds = stateful_fields.iter().map(|f| {
+        let pascal = format_ident!("{}", to_pascal_case(&f.ident.to_string()));
+        let ty = &f.ty;
+        quote! {
+            <<__State as #state_mod_name::State>::#pascal as ::structural_typing::Presence>::Output<#ty>:
+                ::structural_typing::PresenceConvert<
+                    #ty,
+                    <<__TargetState as #state_mod_name::State>::#pascal as ::structural_typing::Presence>::Output<#ty>
+                >
+        }
+    });
+
+    quote! {
+        impl #impl_generics<__State: #state_mod_name::State> #struct_ident #ty_generics<__State> #where_clause {
+            pub fn into_state<__TargetState: #state_mod_name::State>(self) -> #struct_ident #ty_generics<__TargetState>
             where
-                #( #other_field_bounds, )*
+                #( #presence_convert_bounds, )*
             {
-                #( #update_assignments )*
+                #struct_ident {
+                    #(
+                        #always_idents: self.#always_idents,
+                    )*
+                    #(
+                        #stateful_idents: ::structural_typing::PresenceConvert::<#stateful_types, _>::presence_convert(self.#stateful_idents),
+                    )*
+                    _phantom: ::structural_typing::__private::PhantomData,
+                }
             }
         }
     }

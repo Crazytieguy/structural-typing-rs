@@ -37,8 +37,12 @@ pub mod presence;
 /// Traits for accessing fields regardless of their presence state.
 pub mod access;
 
+/// Conversions between different presence states.
+pub mod presence_convert;
+
 pub use presence::{Present, Optional, Absent, Presence};
 pub use access::Access;
+pub use presence_convert::PresenceConvert;
 
 #[doc(hidden)]
 pub mod __private {

@@ -1,6 +1,7 @@
 //! # Field Projection Example
 //!
-//! This example demonstrates selecting/projecting specific fields from a struct.
+//! This example demonstrates selecting/projecting specific fields from a struct using `into_state()`.
+//! The `into_state()` method allows converting between different states automatically.
 //! Useful for hiding sensitive data, creating API responses, or display purposes.
 
 use structural_typing::{structural, Present};
@@ -54,27 +55,6 @@ type BasicInfo = User<
 >;
 
 impl FullUser {
-    fn to_public_profile(&self) -> PublicProfile {
-        User::new(self.id)
-            .username(self.username.clone())
-            .full_name(self.full_name.clone())
-            .bio(self.bio.clone())
-            .avatar_url(self.avatar_url.clone())
-    }
-
-    fn to_admin_view(&self) -> AdminView {
-        User::new(self.id)
-            .username(self.username.clone())
-            .email(self.email.clone())
-            .last_login_ip(self.last_login_ip.clone())
-    }
-
-    fn to_basic_info(&self) -> BasicInfo {
-        User::new(self.id)
-            .username(self.username.clone())
-            .email(self.email.clone())
-    }
-
     fn to_json_safe(&self) -> String {
         format!(
             r#"{{"id":{},"username":"{}","email":"{}"}}"#,
@@ -151,19 +131,21 @@ fn main() {
     println!("   Has sensitive data: password_hash, api_key, last_login_ip");
 
     println!("\n2. Public profile (safe for anyone to see):");
-    let public = full_user.to_public_profile();
+    let public: PublicProfile = full_user.clone().into_state();
     println!("{}", public.display());
     println!("   ✓ No sensitive data exposed");
     println!("   ✓ Username: {}", public.get_username());
+    println!("   ✓ Converted using into_state()");
 
     println!("\n3. Admin view (for administrators):");
-    let admin = full_user.to_admin_view();
+    let admin: AdminView = full_user.clone().into_state();
     println!("{}", admin.display());
     println!("   ✓ Includes email and IP for admin purposes");
     println!("   ✓ Still hides password_hash and api_key");
+    println!("   ✓ Converted using into_state()");
 
     println!("\n4. Basic info (minimal data):");
-    let basic = full_user.to_basic_info();
+    let basic: BasicInfo = full_user.clone().into_state();
     println!("   User #{}: @{}", basic.id, basic.username);
     println!("   Email: {}", basic.get_email());
     println!("   ✓ Only essential identification fields");

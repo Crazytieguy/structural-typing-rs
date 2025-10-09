@@ -3,12 +3,15 @@ use std::marker::PhantomData;
 use crate::access::Access;
 
 /// Marker type indicating a field is known to be present at compile-time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Present;
 
 /// Marker type indicating a field may or may not be present (runtime check needed).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Optional;
 
 /// Marker type indicating a field is known to be absent at compile-time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Absent;
 
 /// Trait for presence states that might contain a value (Present or Optional).

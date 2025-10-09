@@ -1,3 +1,8 @@
+//! # Methods Example
+//!
+//! This example demonstrates implementing methods that require specific fields.
+//! Methods can require different combinations of fields to be present.
+
 use structural_typing::{structural, Access, Present};
 
 #[structural]
@@ -7,12 +12,14 @@ struct Person {
     height: f32,
 }
 
+// Method that requires ONLY name - can check age optionally using Access trait
 impl<S> Person<S>
 where
     S: person_state::State<Name = Present>,
 {
     fn shout_name(&self) -> String {
         let uppercase = self.name.to_uppercase();
+        // Use Access trait to check if age is present
         match self.age.get() {
             Some(age) => format!("{uppercase} ({age})"),
             None => uppercase,
@@ -20,6 +27,7 @@ where
     }
 }
 
+// Method that requires BOTH name AND age
 impl<S> Person<S>
 where
     S: person_state::State<Name = Present, Age = Present>,
@@ -34,13 +42,15 @@ where
 }
 
 fn main() {
+    // Create person with only name
     let john = Person::empty().name("John".into());
+    println!("With name: {}", john.shout_name());
+    // john.say_hello(); // Won't compile - needs age!
 
-    println!("Can call shout_name: {}", john.shout_name());
-
+    // Add age - now we can call say_hello
     let john = john.age(26);
+    println!("With age: {}", john.say_hello());
 
-    println!("Now can call say_hello: {}", john.say_hello());
-
-    println!("shout_name behavior changed: {}", john.shout_name());
+    // shout_name behavior changes when age is present
+    println!("Shout name: {}", john.shout_name());
 }
