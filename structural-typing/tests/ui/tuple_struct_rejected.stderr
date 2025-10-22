@@ -1,0 +1,5 @@
+error: #[structural] requires named fields
+ --> tests/ui/tuple_struct_rejected.rs:4:13
+  |
+4 | struct Tuple(String, u32);
+  |             ^^^^^^^^^^^^^

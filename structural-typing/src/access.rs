@@ -1,13 +1,20 @@
+//! Runtime field access for structural types.
 use std::marker::PhantomData;
 
+/// Trait for uniformly accessing fields that may be Present, Optional, or Absent.
 pub trait Access<T> {
+    /// Compile-time constant indicating if this field is absent.
     const IS_ABSENT: bool;
 
+    /// Get a reference to the field value if present.
     fn get(&self) -> Option<&T>;
+    /// Get a mutable reference to the field value if present.
     fn get_mut(&mut self) -> Option<&mut T>;
+    /// Remove and return the field value if present.
     fn remove(self) -> Option<T>;
 }
 
+/// Helper function to check if a field is absent (used by serde).
 pub fn is_absent<A: Access<T>, T>(_value: &A) -> bool {
     A::IS_ABSENT
 }

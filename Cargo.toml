@@ -1,19 +1,13 @@
-[package]
-name = "structural-typing"
+[workspace]
+members = ["structural-typing", "structural-typing-macros"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Crazytieguy/structural-typing-rs"
 
-[dependencies]
-derive-where = "1.6.0"
-# Note: derive-where's serde feature is enabled via our "serde" feature below
-
-[dev-dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-trybuild = "1.0.112"
-
-[features]
-# Enable serde support - users would opt-in with: structural-typing = { features = ["serde"] }
-# This enables derive-where's serde feature, allowing Serialize/Deserialize derives
-serde = ["derive-where/serde"]
-default = ["serde"]  # For now, enable by default for examples
+[workspace.dependencies]
+structural-typing = { path = "structural-typing" }
+structural-typing-macros = { path = "structural-typing-macros" }

@@ -1,28 +1,51 @@
+//! Type-level markers for field presence states.
+
 use std::marker::PhantomData;
 
 use crate::access::Access;
 
+/// Marker indicating a field is present with a concrete value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Present;
+/// Marker indicating a field may or may not be present (Option).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Optional;
+/// Marker indicating a field is absent (`PhantomData`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Absent;
 
+/// Trait for type-level presence markers with associated container types.
 pub trait Presence {
+    /// The presence state when combined with an Option.
     type OptionOrSelf: Presence;
+    /// Result of merging this presence with another.
     type Or<Other: Presence>: Presence;
+    /// The container type for values with this presence (T, Option<T>, or `PhantomData`<T>).
     type Output<T>: Access<T>;
 
+    /// Merge two values, preferring the first if present.
     fn or<T, Other: Presence>(
         self_: <Self as Presence>::Output<T>,
         other: Other::Output<T>,
     ) -> <<Self as Presence>::Or<Other> as Presence>::Output<T>;
 
+    /// Convert an Option into the appropriate presence state.
     fn option_or_self<T>(
         option: Option<T>,
         self_: <Self as Presence>::Output<T>,
     ) -> <<Self as Presence>::OptionOrSelf as Presence>::Output<T>;
+}
+
+/// Trait for compile-time checked projection from one presence to another.
+pub trait Project<To: Presence>: Presence {
+    /// Project a value to the target presence state.
+    fn project<T>(value: Self::Output<T>) -> To::Output<T>;
+}
+
+/// Trait for runtime checked projection that may fail.
+pub trait TryProject<To: Presence>: Presence {
+    /// Try to project a value to the target presence state.
+    fn try_project<T>(value: Self::Output<T>) -> Option<To::Output<T>>;
 }
 
 impl Presence for Present {
@@ -89,14 +112,6 @@ impl Presence for Absent {
     ) -> <<Self as Presence>::OptionOrSelf as Presence>::Output<T> {
         option
     }
-}
-
-pub trait Project<To: Presence>: Presence {
-    fn project<T>(value: Self::Output<T>) -> To::Output<T>;
-}
-
-pub trait TryProject<To: Presence>: Presence {
-    fn try_project<T>(value: Self::Output<T>) -> Option<To::Output<T>>;
 }
 
 impl<From: Presence, To: Presence> TryProject<To> for From
