@@ -14,32 +14,33 @@ fn main() {
         .name("Alice".into())
         .email("alice@example.com".into());
     assert_eq!(user.greet(), "Hello, Alice!");
+    assert_eq!(user.email_subject(), "Welcome, Alice! <alice@example.com>");
     assert_eq!(user.email, "alice@example.com");
 
     let user_with_id = user.id(12345);
-    assert_eq!(user_with_id.get_id(), 12345);
+    assert_eq!(user_with_id.id, 12345);
 
     // Merge functionality - combines fields from two partial users
     let partial_user = User::empty().name("Bob".into());
     let id_user = User::empty().id(67890);
     let merged = partial_user.merge(id_user);
     assert_eq!(merged.name, "Bob");
-    assert_eq!(merged.get_id(), 67890);
+    assert_eq!(merged.id, 67890);
 
     // Merge conflict resolution: second argument (other) wins
     let user1 = User::empty().name("Alice".into()).id(111);
     let user2 = User::empty().name("Bob".into()).id(222);
     let merged_conflict = user1.merge(user2);
     assert_eq!(merged_conflict.name, "Bob");  // user2 wins
-    assert_eq!(merged_conflict.get_id(), 222); // user2 wins
+    assert_eq!(merged_conflict.id, 222); // user2 wins
 
     // Optional fields
     let optional_user = User::empty().maybe_name(Some("Charlie".into()));
     assert_eq!(optional_user.name, Some("Charlie".to_string()));
 
-    // Absent fields (Access trait)
+    // Absent fields - using generated accessor methods
     let absent_user = User::empty().unset_name();
-    assert!(Access::<String>::get(&absent_user.name).is_none());
+    assert!(absent_user.get_name().is_none());
 
     // Clone and Debug work with all FieldSet variations
     let full_user = User::empty()
@@ -66,11 +67,11 @@ fn main() {
 
     let empty = User::empty();
     let empty_clone = empty.clone();
-    assert!(Access::<String>::get(&empty_clone.name).is_none());
+    assert!(empty_clone.get_name().is_none());
 
     // Default works with all FieldSet variations
     let default_absent: User<AllAbsent> = Default::default();
-    assert!(Access::<String>::get(&default_absent.name).is_none());
+    assert!(default_absent.get_name().is_none());
 
     let default_present: User<AllPresent> = Default::default();
     assert_eq!(default_present.name, "");
@@ -150,6 +151,28 @@ fn main() {
     type NameMaybeId = user::FieldSet<Present, Absent, Optional>;
     let _mixed: User<NameMaybeId> = User::empty().name("test".into()).maybe_id(Some(42));
 
+    // Generic methods using getters - same impl works with any FieldSet
+    let full_user = User::empty()
+        .name("Alice".into())
+        .email("alice@example.com".into())
+        .id(123);
+    assert_eq!(full_user.describe(), "User { name: Alice, email: alice@example.com, id: 123 }");
+
+    let partial_user = User::empty().name("Bob".into()).id(456);
+    assert_eq!(partial_user.describe(), "User { name: Bob, id: 456 }");
+
+    let name_only = User::empty().name("Charlie".into());
+    assert_eq!(name_only.describe(), "User { name: Charlie }");
+
+    let optional_user = User::empty()
+        .maybe_name(Some("Diana".into()))
+        .maybe_email(None)
+        .maybe_id(Some(789));
+    assert_eq!(optional_user.describe(), "User { name: Diana, id: 789 }");
+
+    let empty_user: User<AllAbsent> = User::empty();
+    assert_eq!(empty_user.describe(), "User (no fields set)");
+
     println!("✓ All assertions passed!");
 }
 
@@ -165,14 +188,36 @@ fn main() {
 
 
 impl<F: user::Fields<name = Present>> User<F> {
-    fn greet(&self) -> String {
+    pub fn greet(&self) -> String {
         format!("Hello, {}!", self.name)
     }
 }
 
-impl<F: user::Fields<id = Present>> User<F> {
-    fn get_id(&self) -> u64 {
-        self.id
+impl<F: user::Fields<name = Present, email = Present>> User<F> {
+    pub fn email_subject(&self) -> String {
+        format!("Welcome, {}! <{}>", self.name, self.email)
+    }
+}
+
+impl<F: user::Fields> User<F> {
+    pub fn describe(&self) -> String {
+        let mut parts = vec![];
+
+        if let Some(name) = self.get_name() {
+            parts.push(format!("name: {}", name));
+        }
+        if let Some(email) = self.get_email() {
+            parts.push(format!("email: {}", email));
+        }
+        if let Some(id) = self.get_id() {
+            parts.push(format!("id: {}", id));
+        }
+
+        if parts.is_empty() {
+            "User (no fields set)".to_string()
+        } else {
+            format!("User {{ {} }}", parts.join(", "))
+        }
     }
 }
 
@@ -238,7 +283,7 @@ mod user {
 }
 
 impl User {
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         Self {
             name: PhantomData,
             email: PhantomData,
@@ -248,7 +293,7 @@ impl User {
 }
 
 impl<F: user::Fields> User<F> {
-    fn name(self, name: String) -> User<user::FieldSet<Present, F::email, F::id>> {
+    pub fn name(self, name: String) -> User<user::FieldSet<Present, F::email, F::id>> {
         User {
             name,
             email: self.email,
@@ -256,7 +301,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn maybe_name(self, name: Option<String>) -> User<user::FieldSet<Optional, F::email, F::id>> {
+    pub fn maybe_name(self, name: Option<String>) -> User<user::FieldSet<Optional, F::email, F::id>> {
         User {
             name,
             email: self.email,
@@ -264,7 +309,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn unset_name(self) -> User<user::FieldSet<Absent, F::email, F::id>> {
+    pub fn unset_name(self) -> User<user::FieldSet<Absent, F::email, F::id>> {
         User {
             name: PhantomData,
             email: self.email,
@@ -272,7 +317,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn email(self, email: String) -> User<user::FieldSet<F::name, Present, F::id>> {
+    pub fn email(self, email: String) -> User<user::FieldSet<F::name, Present, F::id>> {
         User {
             name: self.name,
             email,
@@ -280,7 +325,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn maybe_email(self, email: Option<String>) -> User<user::FieldSet<F::name, Optional, F::id>> {
+    pub fn maybe_email(self, email: Option<String>) -> User<user::FieldSet<F::name, Optional, F::id>> {
         User {
             name: self.name,
             email,
@@ -288,7 +333,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn unset_email(self) -> User<user::FieldSet<F::name, Absent, F::id>> {
+    pub fn unset_email(self) -> User<user::FieldSet<F::name, Absent, F::id>> {
         User {
             name: self.name,
             email: PhantomData,
@@ -296,7 +341,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn id(self, id: u64) -> User<user::FieldSet<F::name, F::email, Present>> {
+    pub fn id(self, id: u64) -> User<user::FieldSet<F::name, F::email, Present>> {
         User {
             name: self.name,
             email: self.email,
@@ -304,7 +349,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn maybe_id(self, id: Option<u64>) -> User<user::FieldSet<F::name, F::email, Optional>> {
+    pub fn maybe_id(self, id: Option<u64>) -> User<user::FieldSet<F::name, F::email, Optional>> {
         User {
             name: self.name,
             email: self.email,
@@ -312,7 +357,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn unset_id(self) -> User<user::FieldSet<F::name, F::email, Absent>> {
+    pub fn unset_id(self) -> User<user::FieldSet<F::name, F::email, Absent>> {
         User {
             name: self.name,
             email: self.email,
@@ -320,7 +365,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn merge<F2: user::Fields>(self, other: User<F2>) -> User<user::Merge<F, F2>> {
+    pub fn merge<F2: user::Fields>(self, other: User<F2>) -> User<user::Merge<F, F2>> {
         User {
             name: <F2::name as Presence>::or(other.name, self.name),
             email: <F2::email as Presence>::or(other.email, self.email),
@@ -328,7 +373,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn project<F2: user::Fields>(self) -> User<F2>
+    pub fn project<F2: user::Fields>(self) -> User<F2>
     where
         F::name: Project<F2::name>,
         F::email: Project<F2::email>,
@@ -341,7 +386,7 @@ impl<F: user::Fields> User<F> {
         }
     }
 
-    fn try_project<F2: user::Fields>(self) -> Option<User<F2>>
+    pub fn try_project<F2: user::Fields>(self) -> Option<User<F2>>
     where
         F::name: TryProject<F2::name>,
         F::email: TryProject<F2::email>,
@@ -352,5 +397,29 @@ impl<F: user::Fields> User<F> {
             email: <F::email as TryProject<F2::email>>::try_project(self.email)?,
             id: <F::id as TryProject<F2::id>>::try_project(self.id)?,
         })
+    }
+
+    pub fn get_name(&self) -> Option<&String> {
+        Access::<String>::get(&self.name)
+    }
+
+    pub fn get_name_mut(&mut self) -> Option<&mut String> {
+        Access::<String>::get_mut(&mut self.name)
+    }
+
+    pub fn get_email(&self) -> Option<&String> {
+        Access::<String>::get(&self.email)
+    }
+
+    pub fn get_email_mut(&mut self) -> Option<&mut String> {
+        Access::<String>::get_mut(&mut self.email)
+    }
+
+    pub fn get_id(&self) -> Option<&u64> {
+        Access::<u64>::get(&self.id)
+    }
+
+    pub fn get_id_mut(&mut self) -> Option<&mut u64> {
+        Access::<u64>::get_mut(&mut self.id)
     }
 }
