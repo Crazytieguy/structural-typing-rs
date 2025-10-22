@@ -1,4 +1,18 @@
 [package]
 name = "structural-typing"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+
+[dependencies]
+derive-where = "1.6.0"
+# Note: derive-where's serde feature is enabled via our "serde" feature below
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+# Enable serde support - users would opt-in with: structural-typing = { features = ["serde"] }
+# This enables derive-where's serde feature, allowing Serialize/Deserialize derives
+serde = ["derive-where/serde"]
+default = ["serde"]  # For now, enable by default for examples
