@@ -19,12 +19,19 @@ fn main() {
     let user_with_id = user.id(12345);
     assert_eq!(user_with_id.get_id(), 12345);
 
-    // Merge functionality
+    // Merge functionality - combines fields from two partial users
     let partial_user = User::empty().name("Bob".into());
     let id_user = User::empty().id(67890);
     let merged = partial_user.merge(id_user);
     assert_eq!(merged.name, "Bob");
     assert_eq!(merged.get_id(), 67890);
+
+    // Merge conflict resolution: second argument (other) wins
+    let user1 = User::empty().name("Alice".into()).id(111);
+    let user2 = User::empty().name("Bob".into()).id(222);
+    let merged_conflict = user1.merge(user2);
+    assert_eq!(merged_conflict.name, "Bob");  // user2 wins
+    assert_eq!(merged_conflict.get_id(), 222); // user2 wins
 
     // Optional fields
     let optional_user = User::empty().maybe_name(Some("Charlie".into()));
@@ -60,6 +67,15 @@ fn main() {
     let empty = User::empty();
     let empty_clone = empty.clone();
     assert!(Access::<String>::get(&empty_clone.name).is_none());
+
+    // Default works with all FieldSet variations
+    let default_absent: User<AllAbsent> = Default::default();
+    assert!(Access::<String>::get(&default_absent.name).is_none());
+
+    let default_present: User<AllPresent> = Default::default();
+    assert_eq!(default_present.name, "");
+    assert_eq!(default_present.email, "");
+    assert_eq!(default_present.id, 0);
 
     // Projection
     // user::select!(name, id) → FieldSet<Present, Absent, Present>
@@ -137,6 +153,17 @@ fn main() {
     println!("✓ All assertions passed!");
 }
 
+// User would write:
+//
+// #[structural]
+// #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+// struct User {
+//     name: String,
+//     email: String,
+//     id: u64,
+// }
+
+
 impl<F: user::Fields<name = Present>> User<F> {
     fn greet(&self) -> String {
         format!("Hello, {}!", self.name)
@@ -150,8 +177,24 @@ impl<F: user::Fields<id = Present>> User<F> {
 }
 
 // ============================================================================
-// Generated module (from #[structural] macro):
+// Generated code (from #[structural] macro)
 // ============================================================================
+
+#[derive_where(Clone, Debug, Default, Serialize, Deserialize;
+    <F::name as Presence>::Output<String>,
+    <F::email as Presence>::Output<String>,
+    <F::id as Presence>::Output<u64>
+)]
+struct User<F: user::Fields = user::FieldSet<Absent, Absent, Absent>> {
+    #[serde(skip_serializing_if = "is_absent")]
+    pub name: <F::name as Presence>::Output<String>,
+    #[serde(skip_serializing_if = "is_absent")]
+    pub email: <F::email as Presence>::Output<String>,
+    #[serde(skip_serializing_if = "is_absent")]
+    pub id: <F::id as Presence>::Output<u64>,
+}
+
+// mod user
 mod user {
     use super::*;
 
@@ -193,37 +236,6 @@ mod user {
     pub type AllOptional = FieldSet<Optional, Optional, Optional>;
     pub type AllAbsent = FieldSet<Absent, Absent, Absent>;
 }
-
-// ============================================================================
-// What the user would write with the #[structural] macro:
-// ============================================================================
-// #[structural]
-// #[derive(Clone, Debug, Serialize, Deserialize)]
-// struct User {
-//     name: String,
-//     email: String,
-//     id: u64,
-// }
-// ============================================================================
-
-// What the #[structural] macro would generate:
-#[derive_where(Clone, Debug, Serialize, Deserialize;
-    <F::name as Presence>::Output<String>,
-    <F::email as Presence>::Output<String>,
-    <F::id as Presence>::Output<u64>
-)]
-struct User<F: user::Fields = user::FieldSet<Absent, Absent, Absent>> {
-    #[serde(skip_serializing_if = "is_absent")]
-    pub name: <F::name as Presence>::Output<String>,
-    #[serde(skip_serializing_if = "is_absent")]
-    pub email: <F::email as Presence>::Output<String>,
-    #[serde(skip_serializing_if = "is_absent")]
-    pub id: <F::id as Presence>::Output<u64>,
-}
-
-// ============================================================================
-// Generated impl blocks (from #[structural] macro):
-// ============================================================================
 
 impl User {
     fn empty() -> Self {
