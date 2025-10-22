@@ -1,0 +1,19 @@
+error[E0599]: the method `greet` exists for struct `User`, but its trait bounds were not satisfied
+  --> tests/ui/greet_requires_name.rs:48:10
+   |
+17 |     pub struct FieldSet<name: Presence>(PhantomData<name>);
+   |     ----------------------------------- doesn't satisfy `<FieldSet<Absent> as Fields>::name = Present`
+...
+28 | struct User<F: user::Fields = user::FieldSet<Absent>> {
+   | ----------------------------------------------------- method `greet` not found for this struct
+...
+48 |     user.greet();
+   |          ^^^^^
+   |
+note: trait bound `<FieldSet<Absent> as Fields>::name = Present` was not satisfied
+  --> tests/ui/greet_requires_name.rs:32:22
+   |
+32 | impl<F: user::Fields<name = Present>> User<F> {
+   |                      ^^^^^^^^^^^^^^   -------
+   |                      |
+   |                      unsatisfied trait bound introduced here

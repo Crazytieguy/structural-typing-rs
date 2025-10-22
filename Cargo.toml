@@ -10,6 +10,7 @@ derive-where = "1.6.0"
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+trybuild = "1.0.112"
 
 [features]
 # Enable serde support - users would opt-in with: structural-typing = { features = ["serde"] }
