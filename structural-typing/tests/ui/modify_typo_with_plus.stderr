@@ -1,0 +1,10 @@
+error: Unknown field 'emial' in modify!. Valid fields: name, email
+  --> tests/ui/modify_typo_with_plus.rs:3:1
+   |
+ 3 | #[structural]
+   | ^^^^^^^^^^^^^
+...
+11 |     type Invalid = user::modify!(user::AllAbsent, +emial);
+   |                    -------------------------------------- in this macro invocation
+   |
+   = note: this error originates in the macro `user::modify` (in Nightly builds, run with -Z macro-backtrace for more info)

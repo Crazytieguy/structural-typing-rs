@@ -1,0 +1,21 @@
+error: Invalid operator '!' in modify!. Use +, -, or ?
+  --> tests/ui/modify_invalid_operator.rs:3:1
+   |
+ 3 | #[structural]
+   | ^^^^^^^^^^^^^
+...
+10 |     type Invalid = user::modify!(user::AllAbsent, !name);
+   |                    ------------------------------------- in this macro invocation
+   |
+   = note: this error originates in the macro `__user__modify_name` which comes from the expansion of the macro `user::modify` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Invalid operator '!' in modify!. Use +, -, or ?
+  --> tests/ui/modify_invalid_operator.rs:3:1
+   |
+ 3 | #[structural]
+   | ^^^^^^^^^^^^^
+...
+10 |     type Invalid = user::modify!(user::AllAbsent, !name);
+   |                    ------------------------------------- in this macro invocation
+   |
+   = note: this error originates in the macro `__user__modify_email` which comes from the expansion of the macro `user::modify` (in Nightly builds, run with -Z macro-backtrace for more info)

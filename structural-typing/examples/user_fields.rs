@@ -1,5 +1,5 @@
 use structural_typing::{
-    presence::{Absent, Optional, Present},
+    presence::Present,
     structural,
 };
 
@@ -75,7 +75,7 @@ fn main() {
 
     // Projection
     // user::select!(name, id) → FieldSet<Present, Absent, Present>
-    let projected = full_user.project::<user::FieldSet<Present, Absent, Present>>();
+    let projected = full_user.project::<user::select!(name, id)>();
     assert_eq!(projected.name, "David");
     assert_eq!(projected.id, 42);
 
@@ -83,7 +83,7 @@ fn main() {
         .maybe_name(Some("Eve".into()))
         .maybe_email(None);
     // user::select!(name, email) → FieldSet<Present, Present, Absent>
-    let try_projected = maybe_user.try_project::<user::FieldSet<Present, Present, Absent>>();
+    let try_projected = maybe_user.try_project::<user::select!(name, email)>();
     assert!(try_projected.is_none(), "Should fail due to missing email");
 
     // Serde: works with all FieldSet variations
@@ -121,14 +121,14 @@ fn main() {
 
     // Test various combinations of Present/Optional/Absent
     // user::select!(name, ?email) → FieldSet<Present, Optional, Absent>
-    let mixed1: User<user::FieldSet<Present, Optional, Absent>> = User::empty()
+    let mixed1: User<user::select!(name, ?email)> = User::empty()
         .name("Alice".into())
         .maybe_email(Some("alice@test.com".into()));
     let mixed1_json = serde_json::to_string(&mixed1).unwrap();
     assert_eq!(mixed1_json, r#"{"name":"Alice","email":"alice@test.com"}"#);
 
     // user::select!(email, ?id) → FieldSet<Absent, Present, Optional>
-    let mixed2: User<user::FieldSet<Absent, Present, Optional>> =
+    let mixed2: User<user::select!(email, ?id)> =
         User::empty().email("bob@test.com".into()).maybe_id(None);
     let mixed2_json = serde_json::to_string(&mixed2).unwrap();
     assert_eq!(mixed2_json, r#"{"email":"bob@test.com","id":null}"#);
@@ -139,13 +139,13 @@ fn main() {
 
     // user::modify! examples - modify existing FieldSets
     // user::modify!(AllAbsent, +name, +email) → FieldSet<Present, Present, Absent>
-    type NameEmail = user::FieldSet<Present, Present, Absent>;
+    type NameEmail = user::modify!(user::AllAbsent, +name, +email);
     let _partial: User<NameEmail> = User::empty()
         .name("test".into())
         .email("test@example.com".into());
 
     // user::modify!(AllPresent, -email, ?id) → FieldSet<Present, Absent, Optional>
-    type NameMaybeId = user::FieldSet<Present, Absent, Optional>;
+    type NameMaybeId = user::modify!(user::AllPresent, -email, ?id);
     let _mixed: User<NameMaybeId> = User::empty().name("test".into()).maybe_id(Some(42));
 
     // Generic methods using getters - same impl works with any FieldSet

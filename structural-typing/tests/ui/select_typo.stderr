@@ -1,0 +1,10 @@
+error: Unknown field 'nane' in select!. Valid fields: name, email
+  --> tests/ui/select_typo.rs:3:1
+   |
+ 3 | #[structural]
+   | ^^^^^^^^^^^^^
+...
+10 |     type Invalid = user::select!(nane);  // Typo: "nane" instead of "name"
+   |                    ------------------- in this macro invocation
+   |
+   = note: this error originates in the macro `user::select` (in Nightly builds, run with -Z macro-backtrace for more info)
