@@ -5,7 +5,7 @@ Define structs with optional fields, tracked at the type level. Inspired by Type
 ## Example
 
 ```rust
-use structural_typing::structural;
+use structural_typing::{structural, presence::Present};
 
 #[structural]
 #[derive(Clone, Debug)]

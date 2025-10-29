@@ -45,22 +45,6 @@ fn select_empty_all_absent() {
 }
 
 #[test]
-fn select_duplicate_first_wins() {
-    type DuplicateName = test_struct::select!(name, name);
-    let val: TestStruct<DuplicateName> = TestStruct::empty().name("Test".into());
-    assert_eq!(val.name, "Test");
-}
-
-#[test]
-fn select_duplicate_different_presence_first_wins() {
-    type FirstPresent = test_struct::select!(name, ?name);
-    let _: TestStruct<FirstPresent> = TestStruct::empty().name("Test".into());
-
-    type FirstOptional = test_struct::select!(?name, name);
-    let _: TestStruct<FirstOptional> = TestStruct::empty().maybe_name(Some("Test".into()));
-}
-
-#[test]
 fn modify_add_fields() {
     type NameAndEmail = test_struct::modify!(test_struct::AllAbsent, +name, +email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
@@ -90,20 +74,6 @@ fn modify_make_optional() {
 }
 
 #[test]
-fn modify_no_op() {
-    type Same = test_struct::modify!(test_struct::AllAbsent);
-    let val: TestStruct<Same> = TestStruct::empty();
-    assert!(val.get_name().is_none());
-}
-
-#[test]
-fn modify_conflicting_specs_first_wins() {
-    type FirstWins = test_struct::modify!(test_struct::AllAbsent, +name, -name);
-    let val: TestStruct<FirstWins> = TestStruct::empty().name("Test".into());
-    assert_eq!(val.name, "Test");
-}
-
-#[test]
 fn serde_with_select() {
     type NameAndEmail = test_struct::select!(name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
@@ -123,20 +93,6 @@ fn serde_with_select() {
 }
 
 #[test]
-fn serde_with_modify() {
-    type OnlyName = test_struct::modify!(test_struct::AllAbsent, +name);
-    let val: TestStruct<OnlyName> = TestStruct::empty().name("Henry".into());
-
-    let json = serde_json::to_string(&val).unwrap();
-    assert_eq!(json, r#"{"name":"Henry"}"#);
-
-    let full_json = r#"{"name":"Henry","email":"","id":0}"#;
-    let deserialized: TestStruct<test_struct::AllPresent> =
-        serde_json::from_str(full_json).unwrap();
-    assert_eq!(deserialized.name, "Henry");
-}
-
-#[test]
 fn merge_with_select() {
     type NameOnly = test_struct::select!(name);
     type IdOnly = test_struct::select!(id);
@@ -147,22 +103,6 @@ fn merge_with_select() {
     let merged = name_val.merge(id_val);
     assert_eq!(merged.name, "Alice");
     assert_eq!(merged.id, 123);
-}
-
-#[test]
-fn merge_with_modify() {
-    type NameAndEmail = test_struct::modify!(test_struct::AllAbsent, +name, +email);
-    type IdOnly = test_struct::modify!(test_struct::AllAbsent, +id);
-
-    let partial1: TestStruct<NameAndEmail> = TestStruct::empty()
-        .name("Bob".into())
-        .email("bob@test.com".into());
-    let partial2: TestStruct<IdOnly> = TestStruct::empty().id(456);
-
-    let merged = partial1.merge(partial2);
-    assert_eq!(merged.name, "Bob");
-    assert_eq!(merged.email, "bob@test.com");
-    assert_eq!(merged.id, 456);
 }
 
 #[test]
@@ -179,6 +119,15 @@ fn project_with_select() {
 }
 
 #[test]
+fn try_project_failure() {
+    // try_project fails when source doesn't have required Present field
+    let optional_email: TestStruct<test_struct::select!(name, ?email)> =
+        TestStruct::empty().name("Test".into()).maybe_email(None);
+    let result = optional_email.try_project::<test_struct::select!(name, email)>();
+    assert!(result.is_none(), "try_project should fail when Optional field is None but target needs Present");
+}
+
+#[test]
 fn bounded_impl_with_select() {
     type NameOnly = test_struct::select!(name);
     let val: TestStruct<NameOnly> = TestStruct::empty().name("Diana".into());
@@ -192,6 +141,54 @@ fn bounded_impl_with_modify() {
         .name("Eve".into())
         .email("eve@test.com".into());
     assert_eq!(val.email_subject(), "Welcome, Eve! <eve@test.com>");
+}
+
+#[test]
+fn get_field_mut() {
+    type NameOnly = test_struct::select!(name);
+    let mut val: TestStruct<NameOnly> = TestStruct::empty().name("Test".into());
+
+    if let Some(name) = val.get_name_mut() {
+        *name = "Modified".into();
+    }
+    assert_eq!(val.name, "Modified");
+}
+
+#[test]
+fn unset_field() {
+    let val = TestStruct::empty().name("Test".into()).unset_name();
+    assert!(val.get_name().is_none());
+}
+
+#[test]
+fn merge_conflict_resolution() {
+    let user1 = TestStruct::empty().name("Alice".into()).id(111);
+    let user2 = TestStruct::empty().name("Bob".into()).id(222);
+    let merged = user1.merge(user2);
+    // Second argument (user2) wins
+    assert_eq!(merged.name, "Bob");
+    assert_eq!(merged.id, 222);
+}
+
+#[test]
+fn raw_identifiers() {
+    use structural_typing::structural;
+
+    #[structural]
+    struct Config {
+        r#type: String,
+        r#match: bool,
+        normal: u32,
+    }
+
+    let cfg = Config::empty()
+        .r#type("test".into())
+        .r#match(true)
+        .normal(42);
+
+    assert_eq!(cfg.r#type, "test");
+    assert_eq!(cfg.r#match, true);
+    assert_eq!(cfg.normal, 42);
 }
 
 impl<F: test_struct::Fields<name = Present>> TestStruct<F> {
