@@ -8,6 +8,13 @@ struct TestStruct {
     id: u64,
 }
 
+#[structural]
+struct RawIdConfig {
+    r#type: String,
+    r#match: bool,
+    normal: u32,
+}
+
 #[test]
 fn select_basic() {
     type NameOnly = test_struct::select!(name);
@@ -172,22 +179,13 @@ fn merge_conflict_resolution() {
 
 #[test]
 fn raw_identifiers() {
-    use structural_typing::structural;
-
-    #[structural]
-    struct Config {
-        r#type: String,
-        r#match: bool,
-        normal: u32,
-    }
-
-    let cfg = Config::empty()
+    let cfg = RawIdConfig::empty()
         .r#type("test".into())
         .r#match(true)
         .normal(42);
 
     assert_eq!(cfg.r#type, "test");
-    assert_eq!(cfg.r#match, true);
+    assert!(cfg.r#match);
     assert_eq!(cfg.normal, 42);
 }
 
