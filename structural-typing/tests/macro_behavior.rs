@@ -1,7 +1,8 @@
 use structural_typing::{presence::Present, structural};
 
 #[structural]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct TestStruct {
     name: String,
     email: String,
@@ -81,6 +82,7 @@ fn modify_make_optional() {
 }
 
 #[test]
+#[cfg(feature = "serde")]
 fn serde_with_select() {
     type NameAndEmail = test_struct::select!(name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()

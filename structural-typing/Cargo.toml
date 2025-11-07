@@ -16,4 +16,8 @@ trybuild = "1.0.112"
 
 [features]
 serde = ["derive-where/serde"]
-default = ["serde"]
+default = []
+
+[[example]]
+name = "05_serde"
+required-features = ["serde"]

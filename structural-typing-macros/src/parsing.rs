@@ -85,6 +85,8 @@ fn split_derives_and_attrs(attrs: Vec<Attribute>) -> syn::Result<(Vec<Ident>, Ve
             attr.parse_nested_meta(|meta| {
                 if let Some(ident) = meta.path.get_ident() {
                     derives.push(ident.clone());
+                } else if let Some(last_segment) = meta.path.segments.last() {
+                    derives.push(last_segment.ident.clone());
                 }
                 Ok(())
             })?;
