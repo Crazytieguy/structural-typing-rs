@@ -5,13 +5,10 @@ use std::marker::PhantomData;
 use crate::access::Access;
 
 /// Marker indicating a field is present with a concrete value.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Present;
 /// Marker indicating a field may or may not be present (Option).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Optional;
 /// Marker indicating a field is absent (`PhantomData`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Absent;
 
 /// Trait for type-level presence markers with associated container types.

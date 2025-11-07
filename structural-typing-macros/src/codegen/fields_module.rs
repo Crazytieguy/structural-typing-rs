@@ -556,7 +556,6 @@ pub fn generate(info: &StructInfo) -> TokenStream {
             }
 
             #[allow(non_camel_case_types)]
-            #[derive(Clone, Copy, Debug)]
             pub struct FieldSet<#(#fieldset_params),*>(
                 PhantomData<(#(#fieldset_phantom_types),*)>,
             );
