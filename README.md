@@ -36,7 +36,7 @@ impl<F: user::Fields<name = Present>> User<F> {
 }
 ```
 
-See [examples/user_fields.rs](structural-typing/examples/user_fields.rs) for comprehensive usage including merge, projection, serde integration, and more.
+See [examples/](structural-typing/examples/) for comprehensive usage including merge, projection, serde integration, and more.
 
 ## Features
 
