@@ -40,5 +40,7 @@
 pub mod access;
 /// Type-level presence markers and traits for field state tracking.
 pub mod presence;
+/// Traits for splitting structs into selected fields and remainder.
+pub mod split;
 
 pub use structural_typing_macros::structural;

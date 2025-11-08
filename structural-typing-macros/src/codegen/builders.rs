@@ -69,6 +69,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         }).collect();
 
         quote! {
+            /// Sets this field to Present with the given value.
             pub fn #field_name(self, #field_name: #field_ty) -> #struct_name<#module_name::FieldSet<
                 #(#present_field_types),*
             >> {
@@ -77,6 +78,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
                 }
             }
 
+            /// Sets this field to Optional with the given Option value.
             pub fn #maybe_method(self, #field_name: Option<#field_ty>) -> #struct_name<#module_name::FieldSet<
                 #(#optional_field_types),*
             >> {
@@ -85,6 +87,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
                 }
             }
 
+            /// Sets this field to Absent.
             pub fn #unset_method(self) -> #struct_name<#module_name::FieldSet<
                 #(#absent_field_types),*
             >> {

@@ -16,6 +16,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
 
     quote! {
         impl<F: #module_name::Fields> #struct_name<F> {
+            /// Combines two instances, preferring `other`'s fields when both are present.
             pub fn merge<F2: #module_name::Fields>(self, other: #struct_name<F2>) -> #struct_name<#module_name::Merge<F, F2>> {
                 #struct_name {
                     #(#field_merges),*

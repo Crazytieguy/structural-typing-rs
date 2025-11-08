@@ -16,6 +16,12 @@ struct RawIdConfig {
     normal: u32,
 }
 
+#[structural]
+struct NoClone {
+    value: String,
+    id: u64,
+}
+
 #[test]
 fn select_basic() {
     type NameOnly = test_struct::select!(name);
@@ -115,25 +121,161 @@ fn merge_with_select() {
 }
 
 #[test]
-fn project_with_select() {
+fn split_with_select() {
     let full: TestStruct<test_struct::AllPresent> = TestStruct::empty()
         .name("Charlie".into())
         .email("charlie@test.com".into())
         .id(789);
 
-    let projected = full.project::<test_struct::select!(name, id)>();
-    assert_eq!(projected.name, "Charlie");
-    assert_eq!(projected.id, 789);
-    assert!(projected.get_email().is_none());
+    let (selected, remainder) = full.split::<test_struct::select!(name, id)>();
+    assert_eq!(selected.name, "Charlie");
+    assert_eq!(selected.id, 789);
+    assert!(selected.get_email().is_none());
+
+    assert_eq!(remainder.email, "charlie@test.com");
+    assert!(remainder.get_name().is_none());
+    assert!(remainder.get_id().is_none());
 }
 
 #[test]
-fn try_project_failure() {
-    // try_project fails when source doesn't have required Present field
+fn try_split_failure() {
+    // try_split fails when source doesn't have required Present field
     let optional_email: TestStruct<test_struct::select!(name, ?email)> =
         TestStruct::empty().name("Test".into()).maybe_email(None);
-    let result = optional_email.try_project::<test_struct::select!(name, email)>();
-    assert!(result.is_none(), "try_project should fail when Optional field is None but target needs Present");
+    let result = optional_email.try_split::<test_struct::select!(name, email)>();
+    assert!(result.is_err(), "try_split should fail when Optional field is None but target needs Present");
+}
+
+#[test]
+fn try_split_returns_exact_original() {
+    // Verify that try_split returns the exact original on failure
+    let original: TestStruct<test_struct::select!(name, ?email, id)> = TestStruct::empty()
+        .name("Alice".into())
+        .maybe_email(None)
+        .id(123);
+
+    let cloned = original.clone();
+    let result = original.try_split::<test_struct::select!(name, email, id)>();
+
+    assert!(result.is_err());
+    let returned = result.unwrap_err();
+    assert_eq!(returned, cloned, "try_split should return exact original on failure");
+}
+
+#[test]
+fn try_split_failure_at_different_positions() {
+    // Test failure when Optional field is in the middle
+    let partial: TestStruct<test_struct::select!(name, ?email, id)> = TestStruct::empty()
+        .name("Bob".into())
+        .maybe_email(None)
+        .id(456);
+
+    let cloned = partial.clone();
+    // Fails on email (second field)
+    let result = partial.try_split::<test_struct::select!(name, email, id)>();
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), cloned);
+
+    // Test failure on last field
+    let partial2: TestStruct<test_struct::select!(name, email, ?id)> = TestStruct::empty()
+        .name("Charlie".into())
+        .email("charlie@test.com".into())
+        .maybe_id(None);
+
+    let cloned2 = partial2.clone();
+    let result2 = partial2.try_split::<test_struct::select!(name, email, id)>();
+
+    assert!(result2.is_err());
+    assert_eq!(result2.unwrap_err(), cloned2);
+}
+
+#[test]
+fn try_split_without_clone() {
+    // Demonstrate that try_split works without Clone bound
+    let ncs = NoClone::empty()
+        .value("test".into())
+        .id(42);
+
+    // This should compile and succeed even though NoClone doesn't implement Clone
+    match ncs.try_split::<no_clone::select!(value)>() {
+        Ok((selected, remainder)) => {
+            assert_eq!(selected.value, "test");
+            assert_eq!(remainder.id, 42);
+        }
+        Err(_) => panic!("Expected success"),
+    }
+
+    // Also test failure case without Clone
+    let ncs2 = NoClone::empty()
+        .maybe_value(None)
+        .id(99);
+
+    match ncs2.try_split::<no_clone::select!(value)>() {
+        Ok(_) => panic!("Expected error when Optional is None"),
+        Err(returned) => {
+            assert_eq!(returned.get_value(), None);
+            assert_eq!(returned.id, 99);
+        }
+    }
+}
+
+#[test]
+fn try_split_multiple_optional_fields() {
+    // Test reconstruction when there are two Optional fields and only the second is None
+    let partial: TestStruct<test_struct::select!(?name, ?email, id)> = TestStruct::empty()
+        .maybe_name(Some("Alice".into()))
+        .maybe_email(None)
+        .id(123);
+
+    let cloned = partial.clone();
+    // Should fail because email is None but target needs Present
+    let result = partial.try_split::<test_struct::select!(name, email)>();
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), cloned);
+}
+
+#[test]
+fn try_split_success_then_merge_and_reverse_split() {
+    // Test successful try_split, merge to reconstruct, then try_split in opposite direction
+    // This is more interesting when Present->Optional conversion happens, requiring try_split for reconstruction
+    let original: TestStruct<test_struct::AllPresent> = TestStruct::empty()
+        .name("Bob".into())
+        .email("bob@test.com".into())
+        .id(456);
+
+    let original_cloned = original.clone();
+
+    // First try_split with Present->Optional conversion for email
+    let result = original.try_split::<test_struct::select!(name, ?email)>();
+    assert!(result.is_ok());
+    let (selected, remainder) = result.unwrap();
+
+    let expected_selected = TestStruct::empty()
+        .name(original_cloned.name.clone())
+        .maybe_email(Some(original_cloned.email.clone()));
+    assert_eq!(selected, expected_selected);
+
+    // Merge back - now email is Optional, not Present
+    let reconstructed = selected.merge(remainder);
+    let expected_reconstructed = TestStruct::empty()
+        .name(original_cloned.name.clone())
+        .maybe_email(Some(original_cloned.email.clone()))
+        .id(original_cloned.id);
+    assert_eq!(reconstructed, expected_reconstructed);
+
+    // Now try_split in the opposite direction - requires try_split because email is Optional->Present
+    let result2 = reconstructed.try_split::<test_struct::select!(email)>();
+    assert!(result2.is_ok());
+    let (selected2, remainder2) = result2.unwrap();
+
+    let expected_selected2 = TestStruct::empty().email(original_cloned.email.clone());
+    let expected_remainder2 = TestStruct::empty()
+        .name(original_cloned.name.clone())
+        .id(original_cloned.id);
+    assert_eq!(selected2, expected_selected2);
+    assert_eq!(remainder2, expected_remainder2);
 }
 
 #[test]

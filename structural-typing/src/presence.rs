@@ -17,6 +17,8 @@ pub trait Presence {
     type OptionOrSelf: Presence;
     /// Result of merging this presence with another.
     type Or<Other: Presence>: Presence;
+    /// What remains from `Source` when extracting `Self`. `Present/Optional` → `Absent`; `Absent` → `Source`.
+    type RemainderFrom<Source: Presence>: Presence;
     /// The container type for values with this presence (T, Option<T>, or `PhantomData`<T>).
     type Output<T>: Access<T>;
 
@@ -33,21 +35,11 @@ pub trait Presence {
     ) -> <<Self as Presence>::OptionOrSelf as Presence>::Output<T>;
 }
 
-/// Trait for compile-time checked projection from one presence to another.
-pub trait Project<To: Presence>: Presence {
-    /// Project a value to the target presence state.
-    fn project<T>(value: Self::Output<T>) -> To::Output<T>;
-}
-
-/// Trait for runtime checked projection that may fail.
-pub trait TryProject<To: Presence>: Presence {
-    /// Try to project a value to the target presence state.
-    fn try_project<T>(value: Self::Output<T>) -> Option<To::Output<T>>;
-}
 
 impl Presence for Present {
     type OptionOrSelf = Present;
     type Or<Other: Presence> = Present;
+    type RemainderFrom<Source: Presence> = Absent;
     type Output<T> = T;
 
     #[inline]
@@ -70,6 +62,7 @@ impl Presence for Present {
 impl Presence for Optional {
     type OptionOrSelf = Optional;
     type Or<Other: Presence> = Other::OptionOrSelf;
+    type RemainderFrom<Source: Presence> = Absent;
     type Output<T> = Option<T>;
 
     #[inline]
@@ -92,6 +85,7 @@ impl Presence for Optional {
 impl Presence for Absent {
     type OptionOrSelf = Optional;
     type Or<Other: Presence> = Other;
+    type RemainderFrom<Source: Presence> = Source;
     type Output<T> = PhantomData<T>;
 
     #[inline]
@@ -108,56 +102,5 @@ impl Presence for Absent {
         _self_: <Self as Presence>::Output<T>,
     ) -> <<Self as Presence>::OptionOrSelf as Presence>::Output<T> {
         option
-    }
-}
-
-impl<From: Presence, To: Presence> TryProject<To> for From
-where
-    From: Project<To>,
-{
-    fn try_project<T>(value: From::Output<T>) -> Option<To::Output<T>> {
-        Some(From::project(value))
-    }
-}
-
-impl Project<Present> for Present {
-    fn project<T>(value: T) -> T {
-        value
-    }
-}
-
-impl Project<Optional> for Present {
-    fn project<T>(value: T) -> Option<T> {
-        Some(value)
-    }
-}
-
-impl Project<Absent> for Present {
-    fn project<T>(_value: T) -> PhantomData<T> {
-        PhantomData
-    }
-}
-
-impl Project<Optional> for Optional {
-    fn project<T>(value: Option<T>) -> Option<T> {
-        value
-    }
-}
-
-impl Project<Absent> for Optional {
-    fn project<T>(_value: Option<T>) -> PhantomData<T> {
-        PhantomData
-    }
-}
-
-impl TryProject<Present> for Optional {
-    fn try_project<T>(value: Option<T>) -> Option<T> {
-        value
-    }
-}
-
-impl Project<Absent> for Absent {
-    fn project<T>(value: PhantomData<T>) -> PhantomData<T> {
-        value
     }
 }

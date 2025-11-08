@@ -9,6 +9,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
 
     quote! {
         impl #struct_name {
+            /// Creates an empty instance with all fields absent.
             pub fn empty() -> Self {
                 Self {
                     #(#field_names: ::std::marker::PhantomData),*

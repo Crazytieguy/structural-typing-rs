@@ -22,7 +22,7 @@ mod parsing;
 /// - Builder methods: `.field()`, `.maybe_field()`, `.unset_field()`
 /// - Getter methods: `.get_field()`, `.get_field_mut()`
 /// - `.merge()` - combine two partial structs
-/// - `.project()` / `.try_project()` - extract field subsets
+/// - `.split()` / `.try_split()` - split into selected fields and remainder
 ///
 /// # Field States
 ///

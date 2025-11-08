@@ -14,10 +14,12 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         let get_mut_method = quote::format_ident!("get_{}_mut", field_name);
 
         quote! {
+            /// Returns `Some(&value)` if field is Present or Optional with Some; `None` if Absent or Optional with None.
             pub fn #get_method(&self) -> Option<&#field_ty> {
                 ::structural_typing::access::Access::<#field_ty>::get(&self.#field_name)
             }
 
+            /// Returns `Some(&mut value)` if field is Present or Optional with Some; `None` if Absent or Optional with None.
             pub fn #get_mut_method(&mut self) -> Option<&mut #field_ty> {
                 ::structural_typing::access::Access::<#field_ty>::get_mut(&mut self.#field_name)
             }

@@ -51,6 +51,17 @@ fn generate_merge_fields(field_names: &[&Ident]) -> Vec<TokenStream> {
         .collect()
 }
 
+fn generate_omit_fields(field_names: &[&Ident]) -> Vec<TokenStream> {
+    field_names
+        .iter()
+        .map(|name| {
+            quote! {
+                <<F2 as Fields>::#name as ::structural_typing::presence::Presence>::RemainderFrom<<F1 as Fields>::#name>
+            }
+        })
+        .collect()
+}
+
 fn generate_presence_type_aliases(
     field_count: usize,
 ) -> (Vec<TokenStream>, Vec<TokenStream>, Vec<TokenStream>) {
@@ -512,6 +523,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     let (fieldset_phantom_types, fieldset_params, fieldset_assocs) =
         generate_fieldset_parts(&field_names);
     let merge_fields = generate_merge_fields(&field_names);
+    let omit_fields = generate_omit_fields(&field_names);
     let (all_present, all_optional, all_absent) = generate_presence_type_aliases(info.fields.len());
 
     let select_validator = generate_select_validator(module_name, &field_names);
@@ -570,6 +582,10 @@ pub fn generate(info: &StructInfo) -> TokenStream {
 
             pub type Merge<F1, F2> = FieldSet<
                 #(#merge_fields),*
+            >;
+
+            pub type Omit<F1, F2> = FieldSet<
+                #(#omit_fields),*
             >;
 
             pub type AllPresent = FieldSet<#(#all_present),*>;
