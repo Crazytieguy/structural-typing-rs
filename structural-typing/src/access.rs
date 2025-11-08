@@ -10,8 +10,6 @@ pub trait Access<T> {
     fn get(&self) -> Option<&T>;
     /// Get a mutable reference to the field value if present.
     fn get_mut(&mut self) -> Option<&mut T>;
-    /// Remove and return the field value if present.
-    fn remove(self) -> Option<T>;
 }
 
 /// Helper function to check if a field is absent (used by serde).
@@ -30,10 +28,6 @@ impl<T> Access<T> for PhantomData<T> {
     fn get_mut(&mut self) -> Option<&mut T> {
         None
     }
-    #[inline]
-    fn remove(self) -> Option<T> {
-        None
-    }
 }
 
 impl<T: Sized> Access<T> for T {
@@ -45,10 +39,6 @@ impl<T: Sized> Access<T> for T {
     }
     #[inline]
     fn get_mut(&mut self) -> Option<&mut T> {
-        Some(self)
-    }
-    #[inline]
-    fn remove(self) -> Option<T> {
         Some(self)
     }
 }
@@ -63,9 +53,5 @@ impl<T> Access<T> for Option<T> {
     #[inline]
     fn get_mut(&mut self) -> Option<&mut T> {
         self.as_mut()
-    }
-    #[inline]
-    fn remove(self) -> Option<T> {
-        self
     }
 }
