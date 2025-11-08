@@ -35,6 +35,23 @@ pub trait Presence {
     ) -> <<Self as Presence>::OptionOrSelf as Presence>::Output<T>;
 }
 
+/// Infers presence state from value type: `T` → Present, `Option<T>` → Optional, `PhantomData<T>` → Absent.
+pub trait InferPresence<T> {
+    /// The presence state corresponding to this value type.
+    type Presence: Presence<Output<T> = Self>;
+}
+
+impl<T> InferPresence<T> for T {
+    type Presence = Present;
+}
+
+impl<T> InferPresence<T> for Option<T> {
+    type Presence = Optional;
+}
+
+impl<T> InferPresence<T> for PhantomData<T> {
+    type Presence = Absent;
+}
 
 impl Presence for Present {
     type OptionOrSelf = Present;

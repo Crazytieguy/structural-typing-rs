@@ -19,7 +19,7 @@ mod parsing;
 ///   - `AllPresent`, `AllAbsent`, `AllOptional` - type aliases
 ///   - `select!(...)` macro - create FieldSet with specified fields
 ///   - `modify!(...)` macro - transform existing FieldSets
-/// - Builder methods: `.field()`, `.maybe_field()`, `.unset_field()`
+/// - Builder methods: `.field(value)` that infers presence from value type
 /// - Getter methods: `.get_field()`, `.get_field_mut()`
 /// - `.merge()` - combine two partial structs
 /// - `.split()` / `.try_split()` - split into selected fields and remainder
@@ -42,7 +42,7 @@ mod parsing;
 /// }
 ///
 /// // Build incrementally
-/// let user = User::empty().name("Alice".into());
+/// let user = User::empty().name("Alice".to_owned());
 ///
 /// // Methods can require specific fields
 /// impl<F: user::Fields<name = Present>> User<F> {

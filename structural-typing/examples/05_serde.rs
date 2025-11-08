@@ -13,7 +13,7 @@ struct User {
 
 fn main() {
     // Present fields serialize normally
-    let user = User::empty().name("Alice".into()).id(123);
+    let user = User::empty().name("Alice".to_owned()).id(123);
     let json = serde_json::to_string(&user).unwrap();
     assert_eq!(json, r#"{"name":"Alice","id":123}"#);
     // email is Absent, so skipped
@@ -21,9 +21,9 @@ fn main() {
     // Optional(Some) serializes the value
     // Optional(None) serializes as null
     let user = User::empty()
-        .maybe_name(Some("Bob".into()))
-        .maybe_email(None)
-        .maybe_id(Some(456));
+        .name(Some("Bob".to_owned()))
+        .email(None)
+        .id(Some(456));
     let json = serde_json::to_string(&user).unwrap();
     assert_eq!(json, r#"{"name":"Bob","email":null,"id":456}"#);
 

@@ -13,8 +13,8 @@ struct User {
 fn main() {
     // split() returns (selected, remainder)
     let user = User::empty()
-        .name("Alice".into())
-        .email("alice@example.com".into())
+        .name("Alice".to_owned())
+        .email("alice@example.com".to_owned())
         .id(123);
 
     let (credentials, remainder) = user.split::<user::select!(name, email)>();
@@ -29,13 +29,13 @@ fn main() {
 
     // try_split() succeeds when Optional fields have Some
     let complete = User::empty()
-        .maybe_name(Some("Bob".into()))
-        .maybe_email(Some("bob@example.com".into()))
+        .name(Some("Bob".to_owned()))
+        .email(Some("bob@example.com".to_owned()))
         .id(456);
 
     let expected_credentials = User::empty()
-        .name("Bob".into())
-        .email("bob@example.com".into());
+        .name("Bob".to_owned())
+        .email("bob@example.com".to_owned());
     let expected_remainder = User::empty().id(456);
 
     match complete.try_split::<user::select!(name, email)>() {
@@ -48,8 +48,8 @@ fn main() {
 
     // try_split() fails if Optional field is None but target needs Present
     let partial = User::empty()
-        .maybe_name(Some("Carol".into()))
-        .maybe_email(None)
+        .name(Some("Carol".to_owned()))
+        .email(None)
         .id(789);
 
     let cloned = partial.clone();

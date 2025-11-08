@@ -11,7 +11,7 @@
 //! struct User { name: String, email: String }
 //!
 //! // Build incrementally - type tracks which fields are set
-//! let user = User::empty().name("Alice".into());
+//! let user = User::empty().name("Alice".to_owned());
 //!
 //! // Methods can require specific fields
 //! impl<F: user::Fields<name = Present>> User<F> {
@@ -27,11 +27,11 @@
 //! ## Core Concepts
 //!
 //! - **Field States**: `Present` (has value), `Optional` (has `Option<T>`), `Absent` (no value)
-//! - **Builder API**: `.field(val)`, `.maybe_field(opt)`, `.unset_field()`
+//! - **Builder API**: `.field(value)` infers presence from type (T → Present, Option<T> → Optional, `PhantomData`<T> → Absent)
 //! - **Type Algebra**: `select!(name, ?email)` and `modify!(AllAbsent, +name)`
 //! - **Bounded Impls**: Methods requiring specific fields via trait bounds
 //!
-//! See [`examples/user_fields.rs`](https://github.com/Crazytieguy/structural-typing-rs/blob/master/structural-typing/examples/user_fields.rs) for comprehensive usage.
+//! See [examples/](https://github.com/Crazytieguy/structural-typing-rs/tree/master/structural-typing/examples) for comprehensive usage including merge, split, serde integration, and more.
 
 #![deny(missing_docs)]
 #![warn(clippy::pedantic)]

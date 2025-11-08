@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use structural_typing::{presence::Present, structural};
 
 #[structural]
@@ -25,7 +27,7 @@ struct NoClone {
 #[test]
 fn select_basic() {
     type NameOnly = test_struct::select!(name);
-    let val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".into());
+    let val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
     assert_eq!(val.name, "Alice");
 }
 
@@ -33,8 +35,8 @@ fn select_basic() {
 fn select_multiple() {
     type NameAndEmail = test_struct::select!(name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
-        .name("Bob".into())
-        .email("bob@test.com".into());
+        .name("Bob".to_owned())
+        .email("bob@test.com".to_owned());
     assert_eq!(val.name, "Bob");
     assert_eq!(val.email, "bob@test.com");
 }
@@ -43,8 +45,8 @@ fn select_multiple() {
 fn select_optional() {
     type NameAndMaybeEmail = test_struct::select!(name, ?email);
     let val: TestStruct<NameAndMaybeEmail> = TestStruct::empty()
-        .name("Charlie".into())
-        .maybe_email(Some("charlie@test.com".into()));
+        .name("Charlie".to_owned())
+        .email(Some("charlie@test.com".to_owned()));
     assert_eq!(val.name, "Charlie");
     assert_eq!(val.email, Some("charlie@test.com".to_string()));
 }
@@ -62,8 +64,8 @@ fn select_empty_all_absent() {
 fn modify_add_fields() {
     type NameAndEmail = test_struct::modify!(test_struct::AllAbsent, +name, +email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
-        .name("Dave".into())
-        .email("dave@test.com".into());
+        .name("Dave".to_owned())
+        .email("dave@test.com".to_owned());
     assert_eq!(val.name, "Dave");
     assert_eq!(val.email, "dave@test.com");
 }
@@ -71,7 +73,7 @@ fn modify_add_fields() {
 #[test]
 fn modify_remove_fields() {
     type OnlyName = test_struct::modify!(test_struct::AllPresent, -email, -id);
-    let val: TestStruct<OnlyName> = TestStruct::empty().name("Eve".into());
+    let val: TestStruct<OnlyName> = TestStruct::empty().name("Eve".to_owned());
     assert_eq!(val.name, "Eve");
     assert!(val.get_email().is_none());
     assert!(val.get_id().is_none());
@@ -81,8 +83,8 @@ fn modify_remove_fields() {
 fn modify_make_optional() {
     type NameAndMaybeEmail = test_struct::modify!(test_struct::AllPresent, ?email, -id);
     let val: TestStruct<NameAndMaybeEmail> = TestStruct::empty()
-        .name("Frank".into())
-        .maybe_email(None);
+        .name("Frank".to_owned())
+        .email(None);
     assert_eq!(val.name, "Frank");
     assert_eq!(val.email, None);
 }
@@ -92,8 +94,8 @@ fn modify_make_optional() {
 fn serde_with_select() {
     type NameAndEmail = test_struct::select!(name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
-        .name("Grace".into())
-        .email("grace@test.com".into());
+        .name("Grace".to_owned())
+        .email("grace@test.com".to_owned());
 
     let json = serde_json::to_string(&val).unwrap();
     assert!(json.contains(r#""name":"Grace"#));
@@ -112,7 +114,7 @@ fn merge_with_select() {
     type NameOnly = test_struct::select!(name);
     type IdOnly = test_struct::select!(id);
 
-    let name_val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".into());
+    let name_val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
     let id_val: TestStruct<IdOnly> = TestStruct::empty().id(123);
 
     let merged = name_val.merge(id_val);
@@ -123,8 +125,8 @@ fn merge_with_select() {
 #[test]
 fn split_with_select() {
     let full: TestStruct<test_struct::AllPresent> = TestStruct::empty()
-        .name("Charlie".into())
-        .email("charlie@test.com".into())
+        .name("Charlie".to_owned())
+        .email("charlie@test.com".to_owned())
         .id(789);
 
     let (selected, remainder) = full.split::<test_struct::select!(name, id)>();
@@ -141,7 +143,7 @@ fn split_with_select() {
 fn try_split_failure() {
     // try_split fails when source doesn't have required Present field
     let optional_email: TestStruct<test_struct::select!(name, ?email)> =
-        TestStruct::empty().name("Test".into()).maybe_email(None);
+        TestStruct::empty().name("Test".to_owned()).email(None);
     let result = optional_email.try_split::<test_struct::select!(name, email)>();
     assert!(result.is_err(), "try_split should fail when Optional field is None but target needs Present");
 }
@@ -150,8 +152,8 @@ fn try_split_failure() {
 fn try_split_returns_exact_original() {
     // Verify that try_split returns the exact original on failure
     let original: TestStruct<test_struct::select!(name, ?email, id)> = TestStruct::empty()
-        .name("Alice".into())
-        .maybe_email(None)
+        .name("Alice".to_owned())
+        .email(None)
         .id(123);
 
     let cloned = original.clone();
@@ -166,8 +168,8 @@ fn try_split_returns_exact_original() {
 fn try_split_failure_at_different_positions() {
     // Test failure when Optional field is in the middle
     let partial: TestStruct<test_struct::select!(name, ?email, id)> = TestStruct::empty()
-        .name("Bob".into())
-        .maybe_email(None)
+        .name("Bob".to_owned())
+        .email(None)
         .id(456);
 
     let cloned = partial.clone();
@@ -179,9 +181,9 @@ fn try_split_failure_at_different_positions() {
 
     // Test failure on last field
     let partial2: TestStruct<test_struct::select!(name, email, ?id)> = TestStruct::empty()
-        .name("Charlie".into())
-        .email("charlie@test.com".into())
-        .maybe_id(None);
+        .name("Charlie".to_owned())
+        .email("charlie@test.com".to_owned())
+        .id(None);
 
     let cloned2 = partial2.clone();
     let result2 = partial2.try_split::<test_struct::select!(name, email, id)>();
@@ -194,7 +196,7 @@ fn try_split_failure_at_different_positions() {
 fn try_split_without_clone() {
     // Demonstrate that try_split works without Clone bound
     let ncs = NoClone::empty()
-        .value("test".into())
+        .value("test".to_owned())
         .id(42);
 
     // This should compile and succeed even though NoClone doesn't implement Clone
@@ -208,7 +210,7 @@ fn try_split_without_clone() {
 
     // Also test failure case without Clone
     let ncs2 = NoClone::empty()
-        .maybe_value(None)
+        .value(None)
         .id(99);
 
     match ncs2.try_split::<no_clone::select!(value)>() {
@@ -224,8 +226,8 @@ fn try_split_without_clone() {
 fn try_split_multiple_optional_fields() {
     // Test reconstruction when there are two Optional fields and only the second is None
     let partial: TestStruct<test_struct::select!(?name, ?email, id)> = TestStruct::empty()
-        .maybe_name(Some("Alice".into()))
-        .maybe_email(None)
+        .name(Some("Alice".to_owned()))
+        .email(None)
         .id(123);
 
     let cloned = partial.clone();
@@ -241,8 +243,8 @@ fn try_split_success_then_merge_and_reverse_split() {
     // Test successful try_split, merge to reconstruct, then try_split in opposite direction
     // This is more interesting when Present->Optional conversion happens, requiring try_split for reconstruction
     let original: TestStruct<test_struct::AllPresent> = TestStruct::empty()
-        .name("Bob".into())
-        .email("bob@test.com".into())
+        .name("Bob".to_owned())
+        .email("bob@test.com".to_owned())
         .id(456);
 
     let original_cloned = original.clone();
@@ -254,14 +256,14 @@ fn try_split_success_then_merge_and_reverse_split() {
 
     let expected_selected = TestStruct::empty()
         .name(original_cloned.name.clone())
-        .maybe_email(Some(original_cloned.email.clone()));
+        .email(Some(original_cloned.email.clone()));
     assert_eq!(selected, expected_selected);
 
     // Merge back - now email is Optional, not Present
     let reconstructed = selected.merge(remainder);
     let expected_reconstructed = TestStruct::empty()
         .name(original_cloned.name.clone())
-        .maybe_email(Some(original_cloned.email.clone()))
+        .email(Some(original_cloned.email.clone()))
         .id(original_cloned.id);
     assert_eq!(reconstructed, expected_reconstructed);
 
@@ -281,7 +283,7 @@ fn try_split_success_then_merge_and_reverse_split() {
 #[test]
 fn bounded_impl_with_select() {
     type NameOnly = test_struct::select!(name);
-    let val: TestStruct<NameOnly> = TestStruct::empty().name("Diana".into());
+    let val: TestStruct<NameOnly> = TestStruct::empty().name("Diana".to_owned());
     assert_eq!(val.greet(), "Hello, Diana!");
 }
 
@@ -289,32 +291,33 @@ fn bounded_impl_with_select() {
 fn bounded_impl_with_modify() {
     type NameAndEmail = test_struct::modify!(test_struct::AllAbsent, +name, +email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
-        .name("Eve".into())
-        .email("eve@test.com".into());
+        .name("Eve".to_owned())
+        .email("eve@test.com".to_owned());
     assert_eq!(val.email_subject(), "Welcome, Eve! <eve@test.com>");
 }
 
 #[test]
 fn get_field_mut() {
     type NameOnly = test_struct::select!(name);
-    let mut val: TestStruct<NameOnly> = TestStruct::empty().name("Test".into());
+    let mut val: TestStruct<NameOnly> = TestStruct::empty().name("Test".to_owned());
 
     if let Some(name) = val.get_name_mut() {
-        *name = "Modified".into();
+        *name = "Modified".to_owned();
     }
     assert_eq!(val.name, "Modified");
 }
 
 #[test]
 fn unset_field() {
-    let val = TestStruct::empty().name("Test".into()).unset_name();
+    let full = TestStruct::empty().name("Test".to_owned());
+    let val = full.name(PhantomData);
     assert!(val.get_name().is_none());
 }
 
 #[test]
 fn merge_conflict_resolution() {
-    let user1 = TestStruct::empty().name("Alice".into()).id(111);
-    let user2 = TestStruct::empty().name("Bob".into()).id(222);
+    let user1 = TestStruct::empty().name("Alice".to_owned()).id(111);
+    let user2 = TestStruct::empty().name("Bob".to_owned()).id(222);
     let merged = user1.merge(user2);
     // Second argument (user2) wins
     assert_eq!(merged.name, "Bob");
@@ -324,7 +327,7 @@ fn merge_conflict_resolution() {
 #[test]
 fn raw_identifiers() {
     let cfg = RawIdConfig::empty()
-        .r#type("test".into())
+        .r#type("test".to_owned())
         .r#match(true)
         .normal(42);
 

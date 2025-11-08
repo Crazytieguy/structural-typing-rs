@@ -18,8 +18,8 @@ struct User {
 fn main() {
     // Build with some fields
     let user = User::empty()
-        .name("Alice".into())
-        .email("alice@example.com".into());
+        .name("Alice".to_owned())
+        .email("alice@example.com".to_owned());
 
     // This compiles - greet() requires name field
     println!("{}", user.greet());
@@ -42,7 +42,7 @@ See [examples/](structural-typing/examples/) for comprehensive usage including m
 
 - Type-level field tracking (`Present`, `Optional`, `Absent`)
 - Compile-time enforcement of field requirements
-- Builder pattern with `.field()`, `.maybe_field()`, `.unset_field()`
+- Builder pattern with `.field()` that infers presence from value type
 - Type-safe merge and split
 - Automatic serde support
 - Zero runtime overhead

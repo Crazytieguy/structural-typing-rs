@@ -17,12 +17,12 @@ impl<F: user::Fields<name = Present>> User<F> {
 
 fn main() {
     // Build incrementally - type tracks which fields are set
-    let user = User::empty().name("Alice".into());
+    let user = User::empty().name("Alice".to_owned());
 
     // ✓ Compiles - name is Present
     assert_eq!(user.greet(), "Hello, Alice!");
 
     // Continue building
-    let user = user.email("alice@example.com".into());
+    let user = user.email("alice@example.com".to_owned());
     assert_eq!(user.email, "alice@example.com");
 }
