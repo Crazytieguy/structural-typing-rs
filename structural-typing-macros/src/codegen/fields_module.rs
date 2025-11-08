@@ -517,6 +517,7 @@ fn generate_modify_macro(module_name: &Ident, field_names: &[&Ident]) -> TokenSt
 
 pub fn generate(info: &StructInfo) -> TokenStream {
     let module_name = &info.module_name;
+    let vis = &info.vis;
     let field_names: Vec<_> = info.fields.iter().map(|f| &f.name).collect();
 
     let field_type_assocs = generate_fields_trait_parts(&field_names);
@@ -547,7 +548,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         #(#modify_helpers)*
         #modify_macro
 
-        mod #module_name {
+        #vis mod #module_name {
             use super::*;
             use ::std::marker::PhantomData;
             use ::structural_typing::presence::{Presence, Present, Optional, Absent};
