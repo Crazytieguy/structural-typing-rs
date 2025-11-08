@@ -30,23 +30,31 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         }
     });
 
-    let split_remainder_fields: Vec<_> = info.fields.iter().map(|field| {
-        let field_name = &field.name;
-        let sanitized = sanitize_ident(field_name);
-        let field_name_r = syn::Ident::new(&format!("{}_r", sanitized), field_name.span());
-        quote! {
-            #field_name: #field_name_r
-        }
-    }).collect();
+    let split_remainder_fields: Vec<_> = info
+        .fields
+        .iter()
+        .map(|field| {
+            let field_name = &field.name;
+            let sanitized = sanitize_ident(field_name);
+            let field_name_r = syn::Ident::new(&format!("{}_r", sanitized), field_name.span());
+            quote! {
+                #field_name: #field_name_r
+            }
+        })
+        .collect();
 
-    let split_output_fields: Vec<_> = info.fields.iter().map(|field| {
-        let field_name = &field.name;
-        let sanitized = sanitize_ident(field_name);
-        let field_name_o = syn::Ident::new(&format!("{}_o", sanitized), field_name.span());
-        quote! {
-            #field_name: #field_name_o
-        }
-    }).collect();
+    let split_output_fields: Vec<_> = info
+        .fields
+        .iter()
+        .map(|field| {
+            let field_name = &field.name;
+            let sanitized = sanitize_ident(field_name);
+            let field_name_o = syn::Ident::new(&format!("{}_o", sanitized), field_name.span());
+            quote! {
+                #field_name: #field_name_o
+            }
+        })
+        .collect();
 
     let try_split_where_clauses = info.fields.iter().map(|field| {
         let field_name = &field.name;

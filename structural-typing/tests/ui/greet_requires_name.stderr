@@ -2,12 +2,12 @@ error[E0599]: the method `greet` exists for struct `User`, but its trait bounds 
   --> tests/ui/greet_requires_name.rs:16:10
    |
  3 | #[structural]
-   | ------------- method `greet` not found for this struct because it doesn't satisfy `<FieldSet<Absent> as Fields>::name = Present`
+   | ------------- method `greet` not found for this struct because it doesn't satisfy `<_ as Fields>::name = Present`
 ...
 16 |     user.greet();
    |          ^^^^^
    |
-note: trait bound `<FieldSet<Absent> as Fields>::name = Present` was not satisfied
+note: trait bound `<user::FieldSet<structural_typing::presence::Absent> as Fields>::name = structural_typing::presence::Present` was not satisfied
   --> tests/ui/greet_requires_name.rs:8:22
    |
  8 | impl<F: user::Fields<name = Present>> User<F> {

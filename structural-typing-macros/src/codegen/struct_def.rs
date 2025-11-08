@@ -51,18 +51,10 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         }
     };
 
-    let default_absents: Vec<_> = std::iter::repeat_n(
-        quote! { ::structural_typing::presence::Absent },
-        info.fields.len(),
-    )
-    .collect();
-
     quote! {
         #derive_clause
         #(#other_attrs)*
-        #struct_vis struct #struct_name<F: #module_name::Fields = #module_name::FieldSet<
-            #(#default_absents),*
-        >> {
+        #struct_vis struct #struct_name<F: #module_name::Fields = #module_name::with::all::Absent> {
             #(#field_defs),*
         }
     }

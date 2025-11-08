@@ -6,5 +6,5 @@ struct User {
 }
 
 fn main() {
-    type Invalid = select!(user: +name);
+    type Invalid = select!(user name);
 }

@@ -1,7 +1,7 @@
 //! Serialization with different field states.
 
 use serde::{Deserialize, Serialize};
-use structural_typing::structural;
+use structural_typing::{select, structural};
 
 #[structural]
 #[derive(Serialize, Deserialize)]
@@ -28,12 +28,12 @@ fn main() {
     assert_eq!(json, r#"{"name":"Bob","email":null,"id":456}"#);
 
     // AllAbsent serializes to empty object
-    let empty: User<user::AllAbsent> = User::empty();
+    let empty = User::empty();
     let json = serde_json::to_string(&empty).unwrap();
     assert_eq!(json, "{}");
 
     // Deserialization works too
     let json = r#"{"name":"Charlie","email":"c@example.com","id":789}"#;
-    let user: User<user::AllPresent> = serde_json::from_str(json).unwrap();
+    let user: User<select!(user: all)> = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Charlie");
 }

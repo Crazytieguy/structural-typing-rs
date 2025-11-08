@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use structural_typing::{presence::Present, structural};
+use structural_typing::{presence::Present, select, structural};
 
 #[structural]
 #[derive(Clone, Debug, PartialEq)]
@@ -24,16 +24,21 @@ struct NoClone {
     id: u64,
 }
 
+#[structural]
+struct SingleField {
+    data: String,
+}
+
 #[test]
 fn select_basic() {
-    type NameOnly = test_struct::select!(name);
+    type NameOnly = select!(test_struct: name);
     let val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
     assert_eq!(val.name, "Alice");
 }
 
 #[test]
 fn select_multiple() {
-    type NameAndEmail = test_struct::select!(name, email);
+    type NameAndEmail = select!(test_struct: name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
         .name("Bob".to_owned())
         .email("bob@test.com".to_owned());
@@ -43,7 +48,7 @@ fn select_multiple() {
 
 #[test]
 fn select_optional() {
-    type NameAndMaybeEmail = test_struct::select!(name, ?email);
+    type NameAndMaybeEmail = select!(test_struct: name, ?email);
     let val: TestStruct<NameAndMaybeEmail> = TestStruct::empty()
         .name("Charlie".to_owned())
         .email(Some("charlie@test.com".to_owned()));
@@ -53,16 +58,27 @@ fn select_optional() {
 
 #[test]
 fn select_empty_all_absent() {
-    type AllAbsent = test_struct::select!();
-    let val: TestStruct<AllAbsent> = TestStruct::empty();
+    let val = TestStruct::empty();
     assert!(val.get_name().is_none());
     assert!(val.get_email().is_none());
     assert!(val.get_id().is_none());
 }
 
 #[test]
+fn select_all_optional() {
+    type AllOptional = select!(test_struct: ?all);
+    let val: TestStruct<AllOptional> = TestStruct::empty()
+        .name(Some("Alice".to_owned()))
+        .email(None)
+        .id(Some(123));
+    assert_eq!(val.name, Some("Alice".to_owned()));
+    assert_eq!(val.email, None);
+    assert_eq!(val.id, Some(123));
+}
+
+#[test]
 fn modify_add_fields() {
-    type NameAndEmail = test_struct::modify!(test_struct::AllAbsent, +name, +email);
+    type NameAndEmail = select!(test_struct: name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
         .name("Dave".to_owned())
         .email("dave@test.com".to_owned());
@@ -72,7 +88,7 @@ fn modify_add_fields() {
 
 #[test]
 fn modify_remove_fields() {
-    type OnlyName = test_struct::modify!(test_struct::AllPresent, -email, -id);
+    type OnlyName = select!(test_struct: name);
     let val: TestStruct<OnlyName> = TestStruct::empty().name("Eve".to_owned());
     assert_eq!(val.name, "Eve");
     assert!(val.get_email().is_none());
@@ -81,10 +97,9 @@ fn modify_remove_fields() {
 
 #[test]
 fn modify_make_optional() {
-    type NameAndMaybeEmail = test_struct::modify!(test_struct::AllPresent, ?email, -id);
-    let val: TestStruct<NameAndMaybeEmail> = TestStruct::empty()
-        .name("Frank".to_owned())
-        .email(None);
+    type NameAndMaybeEmail = select!(test_struct: name, ?email);
+    let val: TestStruct<NameAndMaybeEmail> =
+        TestStruct::empty().name("Frank".to_owned()).email(None);
     assert_eq!(val.name, "Frank");
     assert_eq!(val.email, None);
 }
@@ -92,7 +107,7 @@ fn modify_make_optional() {
 #[test]
 #[cfg(feature = "serde")]
 fn serde_with_select() {
-    type NameAndEmail = test_struct::select!(name, email);
+    type NameAndEmail = select!(test_struct: name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
         .name("Grace".to_owned())
         .email("grace@test.com".to_owned());
@@ -103,16 +118,28 @@ fn serde_with_select() {
     assert!(!json.contains("id"), "Absent field should not appear");
 
     let full_json = r#"{"name":"Grace","email":"grace@test.com","id":0}"#;
-    let deserialized: TestStruct<test_struct::AllPresent> =
+    let deserialized: TestStruct<select!(test_struct: all)> =
         serde_json::from_str(full_json).unwrap();
     assert_eq!(deserialized.name, "Grace");
     assert_eq!(deserialized.email, "grace@test.com");
 }
 
 #[test]
+#[cfg(feature = "serde")]
+fn serde_deserialize_with_missing_optional_fields() {
+    type NameEmailAndOptionalId = select!(test_struct: name, email, ?id);
+    let json_without_id = r#"{"name":"Bob","email":"bob@test.com"}"#;
+    let deserialized: TestStruct<NameEmailAndOptionalId> =
+        serde_json::from_str(json_without_id).unwrap();
+    assert_eq!(deserialized.name, "Bob");
+    assert_eq!(deserialized.email, "bob@test.com");
+    assert_eq!(deserialized.id, None);
+}
+
+#[test]
 fn merge_with_select() {
-    type NameOnly = test_struct::select!(name);
-    type IdOnly = test_struct::select!(id);
+    type NameOnly = select!(test_struct: name);
+    type IdOnly = select!(test_struct: id);
 
     let name_val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
     let id_val: TestStruct<IdOnly> = TestStruct::empty().id(123);
@@ -124,12 +151,12 @@ fn merge_with_select() {
 
 #[test]
 fn split_with_select() {
-    let full: TestStruct<test_struct::AllPresent> = TestStruct::empty()
+    let full = TestStruct::empty()
         .name("Charlie".to_owned())
         .email("charlie@test.com".to_owned())
         .id(789);
 
-    let (selected, remainder) = full.split::<test_struct::select!(name, id)>();
+    let (selected, remainder) = full.split::<select!(test_struct: name, id)>();
     assert_eq!(selected.name, "Charlie");
     assert_eq!(selected.id, 789);
     assert!(selected.get_email().is_none());
@@ -142,51 +169,57 @@ fn split_with_select() {
 #[test]
 fn try_split_failure() {
     // try_split fails when source doesn't have required Present field
-    let optional_email: TestStruct<test_struct::select!(name, ?email)> =
+    let optional_email: TestStruct<select!(test_struct: name, ?email)> =
         TestStruct::empty().name("Test".to_owned()).email(None);
-    let result = optional_email.try_split::<test_struct::select!(name, email)>();
-    assert!(result.is_err(), "try_split should fail when Optional field is None but target needs Present");
+    let result = optional_email.try_split::<select!(test_struct: name, email)>();
+    assert!(
+        result.is_err(),
+        "try_split should fail when Optional field is None but target needs Present"
+    );
 }
 
 #[test]
 fn try_split_returns_exact_original() {
     // Verify that try_split returns the exact original on failure
-    let original: TestStruct<test_struct::select!(name, ?email, id)> = TestStruct::empty()
+    let original: TestStruct<select!(test_struct: name, ?email, id)> = TestStruct::empty()
         .name("Alice".to_owned())
         .email(None)
         .id(123);
 
     let cloned = original.clone();
-    let result = original.try_split::<test_struct::select!(name, email, id)>();
+    let result = original.try_split::<select!(test_struct: name, email, id)>();
 
     assert!(result.is_err());
     let returned = result.unwrap_err();
-    assert_eq!(returned, cloned, "try_split should return exact original on failure");
+    assert_eq!(
+        returned, cloned,
+        "try_split should return exact original on failure"
+    );
 }
 
 #[test]
 fn try_split_failure_at_different_positions() {
     // Test failure when Optional field is in the middle
-    let partial: TestStruct<test_struct::select!(name, ?email, id)> = TestStruct::empty()
+    let partial: TestStruct<select!(test_struct: name, ?email, id)> = TestStruct::empty()
         .name("Bob".to_owned())
         .email(None)
         .id(456);
 
     let cloned = partial.clone();
     // Fails on email (second field)
-    let result = partial.try_split::<test_struct::select!(name, email, id)>();
+    let result = partial.try_split::<select!(test_struct: name, email, id)>();
 
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), cloned);
 
     // Test failure on last field
-    let partial2: TestStruct<test_struct::select!(name, email, ?id)> = TestStruct::empty()
+    let partial2: TestStruct<select!(test_struct: name, email, ?id)> = TestStruct::empty()
         .name("Charlie".to_owned())
         .email("charlie@test.com".to_owned())
         .id(None);
 
     let cloned2 = partial2.clone();
-    let result2 = partial2.try_split::<test_struct::select!(name, email, id)>();
+    let result2 = partial2.try_split::<select!(test_struct: name, email, id)>();
 
     assert!(result2.is_err());
     assert_eq!(result2.unwrap_err(), cloned2);
@@ -195,12 +228,10 @@ fn try_split_failure_at_different_positions() {
 #[test]
 fn try_split_without_clone() {
     // Demonstrate that try_split works without Clone bound
-    let ncs = NoClone::empty()
-        .value("test".to_owned())
-        .id(42);
+    let ncs = NoClone::empty().value("test".to_owned()).id(42);
 
     // This should compile and succeed even though NoClone doesn't implement Clone
-    match ncs.try_split::<no_clone::select!(value)>() {
+    match ncs.try_split::<select!(no_clone: value)>() {
         Ok((selected, remainder)) => {
             assert_eq!(selected.value, "test");
             assert_eq!(remainder.id, 42);
@@ -209,11 +240,9 @@ fn try_split_without_clone() {
     }
 
     // Also test failure case without Clone
-    let ncs2 = NoClone::empty()
-        .value(None)
-        .id(99);
+    let ncs2 = NoClone::empty().value(None).id(99);
 
-    match ncs2.try_split::<no_clone::select!(value)>() {
+    match ncs2.try_split::<select!(no_clone: value)>() {
         Ok(_) => panic!("Expected error when Optional is None"),
         Err(returned) => {
             assert_eq!(returned.get_value(), None);
@@ -225,14 +254,14 @@ fn try_split_without_clone() {
 #[test]
 fn try_split_multiple_optional_fields() {
     // Test reconstruction when there are two Optional fields and only the second is None
-    let partial: TestStruct<test_struct::select!(?name, ?email, id)> = TestStruct::empty()
+    let partial: TestStruct<select!(test_struct: ?name, ?email, id)> = TestStruct::empty()
         .name(Some("Alice".to_owned()))
         .email(None)
         .id(123);
 
     let cloned = partial.clone();
     // Should fail because email is None but target needs Present
-    let result = partial.try_split::<test_struct::select!(name, email)>();
+    let result = partial.try_split::<select!(test_struct: name, email)>();
 
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), cloned);
@@ -240,9 +269,7 @@ fn try_split_multiple_optional_fields() {
 
 #[test]
 fn try_split_success_then_merge_and_reverse_split() {
-    // Test successful try_split, merge to reconstruct, then try_split in opposite direction
-    // This is more interesting when Present->Optional conversion happens, requiring try_split for reconstruction
-    let original: TestStruct<test_struct::AllPresent> = TestStruct::empty()
+    let original = TestStruct::empty()
         .name("Bob".to_owned())
         .email("bob@test.com".to_owned())
         .id(456);
@@ -250,7 +277,7 @@ fn try_split_success_then_merge_and_reverse_split() {
     let original_cloned = original.clone();
 
     // First try_split with Present->Optional conversion for email
-    let result = original.try_split::<test_struct::select!(name, ?email)>();
+    let result = original.try_split::<select!(test_struct: name, ?email)>();
     assert!(result.is_ok());
     let (selected, remainder) = result.unwrap();
 
@@ -268,7 +295,7 @@ fn try_split_success_then_merge_and_reverse_split() {
     assert_eq!(reconstructed, expected_reconstructed);
 
     // Now try_split in the opposite direction - requires try_split because email is Optional->Present
-    let result2 = reconstructed.try_split::<test_struct::select!(email)>();
+    let result2 = reconstructed.try_split::<select!(test_struct: email)>();
     assert!(result2.is_ok());
     let (selected2, remainder2) = result2.unwrap();
 
@@ -282,14 +309,14 @@ fn try_split_success_then_merge_and_reverse_split() {
 
 #[test]
 fn bounded_impl_with_select() {
-    type NameOnly = test_struct::select!(name);
+    type NameOnly = select!(test_struct: name);
     let val: TestStruct<NameOnly> = TestStruct::empty().name("Diana".to_owned());
     assert_eq!(val.greet(), "Hello, Diana!");
 }
 
 #[test]
 fn bounded_impl_with_modify() {
-    type NameAndEmail = test_struct::modify!(test_struct::AllAbsent, +name, +email);
+    type NameAndEmail = select!(test_struct: name, email);
     let val: TestStruct<NameAndEmail> = TestStruct::empty()
         .name("Eve".to_owned())
         .email("eve@test.com".to_owned());
@@ -298,7 +325,8 @@ fn bounded_impl_with_modify() {
 
 #[test]
 fn get_field_mut() {
-    type NameOnly = test_struct::select!(name);
+    // Keep direct type alias usage here to ensure they still work
+    type NameOnly = test_struct::with::name::Present;
     let mut val: TestStruct<NameOnly> = TestStruct::empty().name("Test".to_owned());
 
     if let Some(name) = val.get_name_mut() {
@@ -334,6 +362,27 @@ fn raw_identifiers() {
     assert_eq!(cfg.r#type, "test");
     assert!(cfg.r#match);
     assert_eq!(cfg.normal, 42);
+}
+
+#[test]
+fn select_with_module_path() {
+    type NameOnly = select!(crate::test_struct: name);
+    let val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
+    assert_eq!(val.name, "Alice");
+}
+
+#[test]
+fn single_field_struct() {
+    type DataPresent = select!(single_field: data);
+    let val: SingleField<DataPresent> = SingleField::empty().data("test".to_owned());
+    assert_eq!(val.data, "test");
+
+    type DataOptional = select!(single_field: ?data);
+    let val2: SingleField<DataOptional> = SingleField::empty().data(Some("test".to_owned()));
+    assert_eq!(val2.data, Some("test".to_owned()));
+
+    let val3: SingleField<DataOptional> = SingleField::empty().data(None);
+    assert_eq!(val3.data, None);
 }
 
 impl<F: test_struct::Fields<name = Present>> TestStruct<F> {

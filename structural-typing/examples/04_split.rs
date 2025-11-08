@@ -1,6 +1,6 @@
 //! Extracting field subsets with split() and select!().
 
-use structural_typing::structural;
+use structural_typing::{select, structural};
 
 #[structural]
 #[derive(Clone, Debug, PartialEq)]
@@ -17,7 +17,7 @@ fn main() {
         .email("alice@example.com".to_owned())
         .id(123);
 
-    let (credentials, remainder) = user.split::<user::select!(name, email)>();
+    let (credentials, remainder) = user.split::<select!(user: name, email)>();
     assert_eq!(credentials.name, "Alice");
     assert_eq!(credentials.email, "alice@example.com");
     assert_eq!(remainder.id, 123);
@@ -38,7 +38,7 @@ fn main() {
         .email("bob@example.com".to_owned());
     let expected_remainder = User::empty().id(456);
 
-    match complete.try_split::<user::select!(name, email)>() {
+    match complete.try_split::<select!(user: name, email)>() {
         Ok((credentials, remainder)) => {
             assert_eq!(credentials, expected_credentials);
             assert_eq!(remainder, expected_remainder);
@@ -53,7 +53,7 @@ fn main() {
         .id(789);
 
     let cloned = partial.clone();
-    match partial.try_split::<user::select!(name, email)>() {
+    match partial.try_split::<select!(user: name, email)>() {
         Ok(_) => panic!("Expected error"),
         Err(original) => {
             assert_eq!(original, cloned); // Exact original returned

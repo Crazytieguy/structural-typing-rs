@@ -1,6 +1,6 @@
-//! Type algebra with modify!() and generic methods.
+//! Type algebra with select! macro and generic methods.
 
-use structural_typing::structural;
+use structural_typing::{select, structural};
 
 #[structural]
 struct User {
@@ -32,23 +32,32 @@ impl<F: user::Fields> User<F> {
 }
 
 fn main() {
-    // modify!() transforms existing FieldSets
-    // +field = add as Present, -field = remove, ?field = make Optional
-
-    type NameEmail = user::modify!(user::AllAbsent, +name, +email);
+    // select! composes type aliases to create custom field sets
+    // Expands to: user::with::name::Present<user::with::email::Present>
+    type NameEmail = select!(user: name, email);
     let user1: User<NameEmail> = User::empty()
         .name("Alice".to_owned())
         .email("alice@example.com".to_owned());
-    assert_eq!(user1.describe(), "User { name: Alice, email: alice@example.com }");
+    assert_eq!(
+        user1.describe(),
+        "User { name: Alice, email: alice@example.com }"
+    );
 
-    type NameOnly = user::modify!(user::AllPresent, -email, -id);
+    // Single field: expands to user::with::name::Present
+    type NameOnly = select!(user: name);
     let user2: User<NameOnly> = User::empty().name("Bob".to_owned());
     assert_eq!(user2.describe(), "User { name: Bob }");
 
     // Generic method works with any configuration
-    let full = User::empty().name("Charlie".to_owned()).email("c@ex.com".to_owned()).id(123);
-    assert_eq!(full.describe(), "User { name: Charlie, email: c@ex.com, id: 123 }");
+    let full = User::empty()
+        .name("Charlie".to_owned())
+        .email("c@ex.com".to_owned())
+        .id(123);
+    assert_eq!(
+        full.describe(),
+        "User { name: Charlie, email: c@ex.com, id: 123 }"
+    );
 
-    let empty: User<user::AllAbsent> = User::empty();
+    let empty = User::empty();
     assert_eq!(empty.describe(), "User (no fields)");
 }

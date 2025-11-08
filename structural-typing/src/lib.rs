@@ -5,7 +5,7 @@
 //! ## Quick Example
 //!
 //! ```
-//! use structural_typing::{structural, presence::Present};
+//! use structural_typing::{structural, presence::Present, select};
 //!
 //! #[structural]
 //! struct User { name: String, email: String }
@@ -22,13 +22,16 @@
 //!
 //! user.greet(); // ✓ Compiles - name is Present
 //! // User::empty().greet(); // ✗ Compile error - name is Absent
+//!
+//! // Use select! to create field sets
+//! type NameAndEmail = select!(user: name, email);
 //! ```
 //!
 //! ## Core Concepts
 //!
 //! - **Field States**: `Present` (has value), `Optional` (has `Option<T>`), `Absent` (no value)
-//! - **Builder API**: `.field(value)` infers presence from type (T → Present, Option<T> → Optional, `PhantomData`<T> → Absent)
-//! - **Type Algebra**: `select!(name, ?email)` and `modify!(AllAbsent, +name)`
+//! - **Builder API**: `.field(value)` infers presence from type (T → Present, Option<T> → Optional, `PhantomData<T>` → Absent)
+//! - **Type Selection**: `select!(module: field1, ?field2)` macro or type aliases like `with::name::Present<with::email::Optional>`
 //! - **Bounded Impls**: Methods requiring specific fields via trait bounds
 //!
 //! See [examples/](https://github.com/Crazytieguy/structural-typing-rs/tree/master/structural-typing/examples) for comprehensive usage including merge, split, serde integration, and more.
@@ -44,3 +47,59 @@ pub mod presence;
 pub mod split;
 
 pub use structural_typing_macros::structural;
+
+/// Construct a `FieldSet` by selecting fields from a module.
+///
+/// # Syntax
+/// - `select!(module: field)` - field is Present
+/// - `select!(module: ?field)` - field is Optional
+/// - `select!(module: all)` - all fields Present (expands to `module::with::all::Present`)
+/// - Multiple fields compose: `select!(module: field1, ?field2)` expands to `module::with::field1::Present<module::with::field2::Optional>`
+///
+/// # Examples
+/// ```rust
+/// # use structural_typing::{structural, select};
+/// # #[structural]
+/// # struct User { name: String, email: String, id: u64 }
+/// // For User { name, email, id }
+/// type NameAndEmail = select!(user: name, email);
+/// type NameOptionalEmail = select!(user: name, ?email);
+/// type AllPresent = select!(user: all);
+/// ```
+#[macro_export]
+macro_rules! select {
+    // Error: invalid + prefix
+    ($($module:ident)::+ : + $field:ident $($rest:tt)*) => {
+        compile_error!("Invalid prefix '+' in select!. Use 'field' for Present or '?field' for Optional")
+    };
+
+    // Error: invalid - prefix
+    ($($module:ident)::+ : - $field:ident $($rest:tt)*) => {
+        compile_error!("Invalid prefix '-' in select!. Use 'field' for Present or '?field' for Optional")
+    };
+
+    // Error: empty field list
+    ($($module:ident)::+ :) => {
+        compile_error!("select! requires at least one field")
+    };
+
+    // Single field: Present
+    ($($module:ident)::+ : $field:ident) => {
+        $($module)::+::with::$field::Present
+    };
+
+    // Single field: Optional
+    ($($module:ident)::+ : ? $field:ident) => {
+        $($module)::+::with::$field::Optional
+    };
+
+    // Multiple fields: Present + rest
+    ($($module:ident)::+ : $field:ident, $($rest:tt)+) => {
+        $($module)::+::with::$field::Present<select!($($module)::+ : $($rest)+)>
+    };
+
+    // Multiple fields: Optional + rest
+    ($($module:ident)::+ : ? $field:ident, $($rest:tt)+) => {
+        $($module)::+::with::$field::Optional<select!($($module)::+ : $($rest)+)>
+    };
+}

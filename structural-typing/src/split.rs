@@ -5,7 +5,7 @@
 
 use std::marker::PhantomData;
 
-use crate::presence::{Absent, Optional, Present, Presence};
+use crate::presence::{Absent, Optional, Presence, Present};
 
 /// Trait for compile-time checked splitting from one presence to another.
 ///

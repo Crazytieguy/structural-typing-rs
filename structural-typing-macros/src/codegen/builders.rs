@@ -4,10 +4,7 @@ use syn::Ident;
 
 use crate::parsing::StructInfo;
 
-fn generate_field_types_with_inferred(
-    info: &StructInfo,
-    target_field: &Ident,
-) -> Vec<TokenStream> {
+fn generate_field_types_with_inferred(info: &StructInfo, target_field: &Ident) -> Vec<TokenStream> {
     info.fields
         .iter()
         .map(|f| {
@@ -31,14 +28,18 @@ pub fn generate(info: &StructInfo) -> TokenStream {
 
         let field_types = generate_field_types_with_inferred(info, field_name);
 
-        let field_assignments: Vec<_> = info.fields.iter().map(|f| {
-            let name = &f.name;
-            if f.name == *field_name {
-                quote! { #name }
-            } else {
-                quote! { #name: self.#name }
-            }
-        }).collect();
+        let field_assignments: Vec<_> = info
+            .fields
+            .iter()
+            .map(|f| {
+                let name = &f.name;
+                if f.name == *field_name {
+                    quote! { #name }
+                } else {
+                    quote! { #name: self.#name }
+                }
+            })
+            .collect();
 
         quote! {
             pub fn #field_name<V: ::structural_typing::presence::InferPresence<#field_ty>>(

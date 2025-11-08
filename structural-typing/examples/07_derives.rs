@@ -1,6 +1,6 @@
 //! Common trait derivation with structural types.
 
-use structural_typing::structural;
+use structural_typing::{select, structural};
 
 #[structural]
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -35,7 +35,7 @@ fn main() {
     // assert_eq!(partial, complete);
 
     // But we can compare after projecting
-    let (complete_partial, _) = complete.split::<user::select!(name)>();
+    let (complete_partial, _) = complete.split::<select!(user: name)>();
     assert_eq!(partial, complete_partial);
 
     // Debug formatting works

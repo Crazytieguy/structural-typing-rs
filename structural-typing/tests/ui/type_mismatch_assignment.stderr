@@ -1,10 +1,15 @@
 error[E0308]: mismatched types
-  --> tests/ui/type_mismatch_assignment.rs:10:52
+  --> tests/ui/type_mismatch_assignment.rs:12:17
    |
-10 |     let user_without_name: User<user::AllAbsent> = user_with_name;
-   |                            ---------------------   ^^^^^^^^^^^^^^ expected `User`, found `User<FieldSet<Present>>`
-   |                            |
-   |                            expected due to this
+12 |     takes_empty(user_with_name);
+   |     ----------- ^^^^^^^^^^^^^^ expected `User`, found `User<FieldSet<Present>>`
+   |     |
+   |     arguments to this function are incorrect
    |
-   = note: expected struct `User<FieldSet<Absent>>`
-              found struct `User<FieldSet<Present>>`
+   = note: expected struct `User<user::FieldSet<structural_typing::presence::Absent>>`
+              found struct `User<user::FieldSet<structural_typing::presence::Present>>`
+note: function defined here
+  --> tests/ui/type_mismatch_assignment.rs:8:4
+   |
+ 8 | fn takes_empty(_user: User) {}
+   |    ^^^^^^^^^^^ -----------

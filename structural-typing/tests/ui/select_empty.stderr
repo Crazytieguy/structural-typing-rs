@@ -1,0 +1,7 @@
+error: select! requires at least one field
+ --> tests/ui/select_empty.rs:9:20
+  |
+9 |     type Invalid = select!(user:);
+  |                    ^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `select` (in Nightly builds, run with -Z macro-backtrace for more info)

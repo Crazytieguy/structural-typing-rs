@@ -1,0 +1,11 @@
+error: no rules expected `name`
+ --> tests/ui/select_missing_colon.rs:9:33
+  |
+9 |     type Invalid = select!(user name);
+  |                                 ^^^^ no rules expected this token in macro call
+  |
+note: while trying to match `:`
+ --> src/lib.rs
+  |
+  |     ($($module:ident)::+ : + $field:ident $($rest:tt)*) => {
+  |                          ^
