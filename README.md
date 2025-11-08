@@ -36,14 +36,14 @@ impl<F: user::Fields<name = Present>> User<F> {
 }
 ```
 
-See [examples/](structural-typing/examples/) for comprehensive usage including merge, projection, serde integration, and more.
+See [examples/](structural-typing/examples/) for comprehensive usage including merge, split, serde integration, and more.
 
 ## Features
 
 - Type-level field tracking (`Present`, `Optional`, `Absent`)
 - Compile-time enforcement of field requirements
 - Builder pattern with `.field()`, `.maybe_field()`, `.unset_field()`
-- Type-safe merge and projection
+- Type-safe merge and split
 - Automatic serde support
 - Zero runtime overhead
 
