@@ -1,4 +1,4 @@
-//! Extracting field subsets with split() and select!().
+//! Fallible split with try_split() for Optional→Present conversion.
 
 use structural_typing::{select, structural};
 
@@ -11,22 +11,6 @@ struct User {
 }
 
 fn main() {
-    // split() returns (selected, remainder)
-    let user = User::empty()
-        .name("Alice".to_owned())
-        .email("alice@example.com".to_owned())
-        .id(123);
-
-    let (credentials, remainder) = user.split::<select!(user: name, email)>();
-    assert_eq!(credentials.name, "Alice");
-    assert_eq!(credentials.email, "alice@example.com");
-    assert_eq!(remainder.id, 123);
-
-    // Split-clone-merge pattern: duplicate a subset while preserving the whole
-    let backup = credentials.clone();
-    let user = credentials.merge(remainder);
-    assert_eq!(user.name, backup.name);
-
     // try_split() succeeds when Optional fields have Some
     let complete = User::empty()
         .name(Some("Bob".to_owned()))
@@ -56,7 +40,7 @@ fn main() {
     match partial.try_split::<select!(user: name, email)>() {
         Ok(_) => panic!("Expected error"),
         Err(original) => {
-            assert_eq!(original, cloned); // Exact original returned
+            assert_eq!(original, cloned);
         }
     }
 }

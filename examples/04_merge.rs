@@ -22,6 +22,12 @@ fn main() {
     let user1 = User::empty().name("Alice".to_owned()).id(111);
     let user2 = User::empty().name("Bob".to_owned()).id(222);
     let merged = user1.merge(user2);
-    assert_eq!(merged.name, "Bob"); // user2's value
+    assert_eq!(merged.name, "Bob");
     assert_eq!(merged.id, 222);
+
+    // Optional + Present merge
+    let optional_user = User::empty().name(Some("Charlie".to_owned()));
+    let present_user = User::empty().name("David".to_owned());
+    let merged = optional_user.merge(present_user);
+    assert_eq!(merged.name, "David");
 }

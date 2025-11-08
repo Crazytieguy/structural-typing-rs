@@ -1,4 +1,4 @@
-//! Basic incremental building with type-safe field requirements.
+//! Generic impls with conditional behavior.
 
 use structural_typing::{presence::Present, structural};
 
@@ -8,21 +8,23 @@ struct User {
     email: String,
 }
 
-// Methods can require specific fields be Present
+// Requires name, behavior changes based on email presence
 impl<F: user::Fields<name = Present>> User<F> {
     fn greet(&self) -> String {
-        format!("Hello, {}!", self.name)
+        if let Some(email) = self.get_email() {
+            format!("Hello, {} <{}>!", self.name, email)
+        } else {
+            format!("Hello, {}!", self.name)
+        }
     }
 }
 
 fn main() {
-    // Build incrementally - type tracks which fields are set
+    // Without email
     let user = User::empty().name("Alice".to_owned());
-
-    // ✓ Compiles - name is Present
     assert_eq!(user.greet(), "Hello, Alice!");
 
-    // Continue building
+    // With email
     let user = user.email("alice@example.com".to_owned());
-    assert_eq!(user.email, "alice@example.com");
+    assert_eq!(user.greet(), "Hello, Alice <alice@example.com>!");
 }

@@ -43,7 +43,7 @@ impl<F: user::Fields<name = Present>> User<F> {
 }
 ```
 
-See [examples/](structural-typing/examples/) for comprehensive usage including merge, split, serde integration, and more.
+See [examples/](examples/) for comprehensive usage including merge, split, serde integration, and more.
 
 ## Features
 

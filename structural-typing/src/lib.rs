@@ -34,7 +34,7 @@
 //! - **Type Selection**: `select!(module: field1, ?field2)` macro or type aliases like `with::name::Present<with::email::Optional>`
 //! - **Bounded Impls**: Methods requiring specific fields via trait bounds
 //!
-//! See [examples/](https://github.com/Crazytieguy/structural-typing-rs/tree/master/structural-typing/examples) for comprehensive usage including merge, split, serde integration, and more.
+//! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage including merge, split, serde integration, and more.
 
 #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
