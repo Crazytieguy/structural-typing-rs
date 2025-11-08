@@ -7,7 +7,8 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Crazytieguy/structural-typing-rs"
+rust-version = "1.85"
 
 [workspace.dependencies]
-structural-typing = { path = "structural-typing" }
-structural-typing-macros = { path = "structural-typing-macros" }
+structural-typing = { path = "structural-typing", version = "0.1.0" }
+structural-typing-macros = { path = "structural-typing-macros", version = "0.1.0" }

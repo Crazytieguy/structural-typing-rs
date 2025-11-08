@@ -4,6 +4,11 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version.workspace = true
+description = "Type-level field presence tracking for Rust structs, inspired by TypeScript"
+readme = "../README.md"
+keywords = ["builder", "type-safety", "optional", "structural", "typing"]
+categories = ["rust-patterns", "no-std", "development-tools"]
 
 [dependencies]
 derive-where = "1.6.0"

@@ -88,8 +88,18 @@ macro_rules! select {
         $($module)::+::with::$field::Present
     };
 
+    // Single field: Present with trailing comma
+    ($($module:ident)::+ : $field:ident,) => {
+        $($module)::+::with::$field::Present
+    };
+
     // Single field: Optional
     ($($module:ident)::+ : ? $field:ident) => {
+        $($module)::+::with::$field::Optional
+    };
+
+    // Single field: Optional with trailing comma
+    ($($module:ident)::+ : ? $field:ident,) => {
         $($module)::+::with::$field::Optional
     };
 

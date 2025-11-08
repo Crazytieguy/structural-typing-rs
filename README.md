@@ -2,6 +2,12 @@
 
 Define structs with optional fields, tracked at the type level. Inspired by TypeScript, RDF, and [this talk](https://www.youtube.com/watch?v=YR5WdGrpoug&list=PLZdCLR02grLrEwKaZv-5QbUzK0zGKOOcr&index=2&t=9s).
 
+## Installation
+
+```bash
+cargo add structural-typing
+```
+
 ## Example
 
 ```rust
@@ -29,6 +35,7 @@ fn main() {
 }
 
 // Methods that require specific fields
+// Note: #[structural] generates a snake_case module (User → user)
 impl<F: user::Fields<name = Present>> User<F> {
     fn greet(&self) -> String {
         format!("Hello, {}!", self.name)

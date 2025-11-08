@@ -42,6 +42,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
             .collect();
 
         quote! {
+            #[must_use]
             pub fn #field_name<V: ::structural_typing::presence::InferPresence<#field_ty>>(
                 self,
                 #field_name: V

@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use structural_typing::{presence::Present, select, structural};
 
@@ -383,6 +383,24 @@ fn single_field_struct() {
 
     let val3: SingleField<DataOptional> = SingleField::empty().data(None);
     assert_eq!(val3.data, None);
+}
+
+#[test]
+fn select_with_trailing_comma() {
+    type NameOnly = select!(test_struct: name,);
+    let val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
+    assert_eq!(val.name, "Alice");
+
+    type NameAndEmail = select!(test_struct: name, email,);
+    let val2: TestStruct<NameAndEmail> = TestStruct::empty()
+        .name("Bob".to_owned())
+        .email("bob@test.com".to_owned());
+    assert_eq!(val2.name, "Bob");
+    assert_eq!(val2.email, "bob@test.com");
+
+    type OptionalName = select!(test_struct: ?name,);
+    let val3: TestStruct<OptionalName> = TestStruct::empty().name(Some("Charlie".to_owned()));
+    assert_eq!(val3.name, Some("Charlie".to_owned()));
 }
 
 impl<F: test_struct::Fields<name = Present>> TestStruct<F> {

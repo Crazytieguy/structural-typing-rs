@@ -66,7 +66,11 @@ fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
     let has_multiple_fields = field_names.len() > 1;
 
     // Generate the default type for F parameter (all fields Absent)
-    let all_absent_default: Vec<_> = std::iter::repeat_n(quote! { ::structural_typing::presence::Absent }, field_names.len()).collect();
+    let all_absent_default: Vec<_> = std::iter::repeat_n(
+        quote! { ::structural_typing::presence::Absent },
+        field_names.len(),
+    )
+    .collect();
 
     let field_modules: Vec<_> = field_names
         .iter()
@@ -136,10 +140,21 @@ fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
         })
         .collect();
 
-    let all_present: Vec<_> = std::iter::repeat_n(quote! { ::structural_typing::presence::Present }, field_names.len()).collect();
-    let all_optional: Vec<_> =
-        std::iter::repeat_n(quote! { ::structural_typing::presence::Optional }, field_names.len()).collect();
-    let all_absent: Vec<_> = std::iter::repeat_n(quote! { ::structural_typing::presence::Absent }, field_names.len()).collect();
+    let all_present: Vec<_> = std::iter::repeat_n(
+        quote! { ::structural_typing::presence::Present },
+        field_names.len(),
+    )
+    .collect();
+    let all_optional: Vec<_> = std::iter::repeat_n(
+        quote! { ::structural_typing::presence::Optional },
+        field_names.len(),
+    )
+    .collect();
+    let all_absent: Vec<_> = std::iter::repeat_n(
+        quote! { ::structural_typing::presence::Absent },
+        field_names.len(),
+    )
+    .collect();
 
     quote! {
         /// Type aliases for field presence combinations.
@@ -177,7 +192,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     quote! {
         #vis mod #module_name {
             use super::*;
-            use ::std::marker::PhantomData;
+            use ::core::marker::PhantomData;
             use ::structural_typing::presence::{Presence, Present, Optional, Absent};
 
             mod sealed {

@@ -1,6 +1,6 @@
 //! Type-level markers for field presence states.
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use crate::access::Access;
 
@@ -19,7 +19,7 @@ pub trait Presence {
     type Or<Other: Presence>: Presence;
     /// What remains from `Source` when extracting `Self`. `Present/Optional` → `Absent`; `Absent` → `Source`.
     type RemainderFrom<Source: Presence>: Presence;
-    /// The container type for values with this presence (T, Option<T>, or `PhantomData`<T>).
+    /// The container type for values with this presence (T, Option\<T>, or `PhantomData`\<T>).
     type Output<T>: Access<T>;
 
     /// Merge two values, preferring the first if present.

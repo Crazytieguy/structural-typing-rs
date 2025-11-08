@@ -1,5 +1,5 @@
 //! Runtime field access for structural types.
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Trait for uniformly accessing fields that may be Present, Optional, or Absent.
 pub trait Access<T> {

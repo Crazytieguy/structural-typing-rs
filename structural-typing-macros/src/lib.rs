@@ -16,9 +16,7 @@ mod parsing;
 /// - A `my_struct` module containing:
 ///   - `Fields` trait - for type-level field requirements
 ///   - `FieldSet<...>` - zero-cost marker type tracking field presence
-///   - `AllPresent`, `AllAbsent`, `AllOptional` - type aliases
-///   - `select!(...)` macro - create FieldSet with specified fields
-///   - `modify!(...)` macro - transform existing FieldSets
+///   - Type aliases in `with::` module for field presence combinations
 /// - Builder methods: `.field(value)` that infers presence from value type
 /// - Getter methods: `.get_field()`, `.get_field_mut()`
 /// - `.merge()` - combine two partial structs

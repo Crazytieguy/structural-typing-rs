@@ -3,7 +3,7 @@
 //! Use `split()` when extraction always succeeds (e.g., `Present` → `Optional`).
 //! Use `try_split()` when extraction may fail (e.g., `Optional` → `Present` can fail if `None`).
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use crate::presence::{Absent, Optional, Presence, Present};
 
