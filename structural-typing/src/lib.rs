@@ -30,7 +30,7 @@
 //! ## Core Concepts
 //!
 //! - **Field States**: `Present` (has value), `Optional` (has `Option<T>`), `Absent` (no value)
-//! - **Builder API**: `.field(value)` infers presence from type (T → Present, Option<T> → Optional, `PhantomData<T>` → Absent)
+//! - **Builder API**: `.field(value)` infers presence from type (`T` → `Present`, `Option<T>` → `Optional`, `PhantomData<T>` → Absent)
 //! - **Type Selection**: `select!(module: field1, ?field2)` macro or type aliases like `with::name::Present<with::email::Optional>`
 //! - **Bounded Impls**: Methods requiring specific fields via trait bounds
 //!
