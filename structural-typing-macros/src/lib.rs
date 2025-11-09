@@ -18,20 +18,16 @@ mod parsing;
 ///
 /// For a struct `MyStruct`, this macro generates:
 ///
-/// - A `my_struct` module containing:
-///   - `Fields` trait - for type-level field requirements
-///   - `FieldSet<...>` - zero-cost marker type tracking field presence
-///   - Type aliases in `with::` module for field presence combinations
-/// - Builder methods: `.field(value)` that infers presence from value type
+/// - A `my_struct` module with `Fields` trait, `FieldSet<...>` type, and `with::` aliases
+/// - Builder methods: `.field(value)`
 /// - Getter methods: `.get_field()`, `.get_field_mut()`
-/// - `.merge()` - combine two partial structs
-/// - `.split()` / `.try_split()` - split into selected fields and remainder
+/// - `.merge()`, `.split()`, `.try_split()` operations
 ///
 /// # Field States
 ///
-/// - **Present**: Field has a value of type `T`
-/// - **Optional**: Field has type `Option<T>`
-/// - **Absent**: Field is `PhantomData<T>` (zero cost)
+/// - **Present**: Value of type `T`
+/// - **Optional**: `Option<T>`
+/// - **Absent**: `PhantomData<T>`
 ///
 /// # Example
 ///
@@ -59,9 +55,9 @@ mod parsing;
 ///
 /// # Restrictions
 ///
-/// - Only named structs supported (not tuple structs or enums)
-/// - No generic parameters allowed
-/// - Struct must have at least one field
+/// - Named structs only
+/// - No generics
+/// - At least one field
 #[proc_macro_attribute]
 pub fn structural(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);

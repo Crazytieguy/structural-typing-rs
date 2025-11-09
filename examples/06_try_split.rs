@@ -11,7 +11,7 @@ struct User {
 }
 
 fn main() {
-    // try_split() succeeds when Optional fields have Some
+    // Success case
     let complete = User::empty()
         .name(Some("Bob".to_owned()))
         .email(Some("bob@example.com".to_owned()))
@@ -30,7 +30,7 @@ fn main() {
         Err(_) => panic!("Expected success"),
     }
 
-    // try_split() fails if Optional field is None but target needs Present
+    // Failure case
     let partial = User::empty()
         .name(Some("Carol".to_owned()))
         .email(None)

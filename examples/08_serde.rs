@@ -12,14 +12,11 @@ struct User {
 }
 
 fn main() {
-    // Present fields serialize normally
     let user = User::empty().name("Alice".to_owned()).id(123);
     let json = serde_json::to_string(&user).unwrap();
     assert_eq!(json, r#"{"name":"Alice","id":123}"#);
-    // email is Absent, so skipped
 
-    // Optional(Some) serializes the value
-    // Optional(None) serializes as null
+    // Optional: Some → value, None → null
     let user = User::empty()
         .name(Some("Bob".to_owned()))
         .email(None)
@@ -27,12 +24,10 @@ fn main() {
     let json = serde_json::to_string(&user).unwrap();
     assert_eq!(json, r#"{"name":"Bob","email":null,"id":456}"#);
 
-    // AllAbsent serializes to empty object
     let empty = User::empty();
     let json = serde_json::to_string(&empty).unwrap();
     assert_eq!(json, "{}");
 
-    // Deserialization works too
     let json = r#"{"name":"Charlie","email":"c@example.com","id":789}"#;
     let user: User = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Charlie");

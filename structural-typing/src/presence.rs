@@ -13,13 +13,13 @@ pub struct Absent;
 
 /// Trait for type-level presence markers with associated container types.
 pub trait Presence {
-    /// The presence state when combined with an Option.
+    /// Presence when combined with Option.
     type OptionOrSelf: Presence;
     /// Result of merging this presence with another.
     type Or<Other: Presence>: Presence;
-    /// What remains from `Source` when extracting `Self`. `Present/Optional` → `Absent`; `Absent` → `Source`.
+    /// Remainder when extracting Self: Present/Optional → Absent, Absent → Source.
     type RemainderFrom<Source: Presence>: Presence;
-    /// The container type for values with this presence (T, Option\<T>, or `PhantomData`\<T>).
+    /// Container type (T, Option\<T>, or `PhantomData`\<T>).
     type Output<T>: Access<T>;
 
     /// Merge two values, preferring the first if present.

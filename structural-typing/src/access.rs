@@ -1,14 +1,14 @@
 //! Runtime field access for structural types.
 use core::marker::PhantomData;
 
-/// Trait for uniformly accessing fields that may be Present, Optional, or Absent.
+/// Uniform field access for Present, Optional, or Absent.
 pub trait Access<T> {
     /// Compile-time constant indicating if this field is absent.
     const IS_ABSENT: bool;
 
-    /// Get a reference to the field value if present.
+    /// Get field reference if present.
     fn get(&self) -> Option<&T>;
-    /// Get a mutable reference to the field value if present.
+    /// Get mutable field reference if present.
     fn get_mut(&mut self) -> Option<&mut T>;
 }
 

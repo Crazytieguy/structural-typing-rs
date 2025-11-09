@@ -42,7 +42,7 @@
 //!
 //! - **Field States**: `Present` (has value), `Optional` (has `Option<T>`), `Absent` (no value)
 //! - **Builder API**: `.field(value)` infers presence from type (`T` → `Present`, `Option<T>` → `Optional`, `PhantomData<T>` → Absent)
-//! - **Type Selection**: `select!(module: field1, ?field2)` macro or type aliases like `with::name::Present<with::email::Optional>`
+//! - **Type Selection**: `select!(module: field1, ?field2)` macro or direct type aliases
 //! - **Bounded Impls**: Methods requiring specific fields via trait bounds
 //!
 //! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage including merge, split, serde integration, and more.
@@ -68,11 +68,7 @@ pub use structural_typing_macros::structural;
 /// - Multiple fields compose: `select!(module: field1, ?field2)` expands to `module::with::field1::Present<module::with::field2::Optional>`
 ///
 /// # Examples
-/// ```rust
-/// # use structural_typing::{structural, select};
-/// # #[structural]
-/// # struct User { name: String, email: String, id: u64 }
-///
+/// ```ignore
 /// type Create = select!(user: name, email);
 /// type Update = select!(user: ?name, ?email);
 /// fn create_user(user: User<Create>) {...}

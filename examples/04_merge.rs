@@ -9,23 +9,20 @@ struct User {
 }
 
 fn main() {
-    // Build two partial users
     let with_name = User::empty().name("Bob".to_owned());
     let with_id = User::empty().id(123);
 
-    // Merge combines them
     let complete = with_name.merge(with_id);
     assert_eq!(complete.name, "Bob");
     assert_eq!(complete.id, 123);
 
-    // Conflict resolution: second argument wins
+    // Second wins
     let user1 = User::empty().name("Alice".to_owned()).id(111);
     let user2 = User::empty().name("Bob".to_owned()).id(222);
     let merged = user1.merge(user2);
     assert_eq!(merged.name, "Bob");
     assert_eq!(merged.id, 222);
 
-    // Optional + Present merge
     let optional_user = User::empty().name(Some("Charlie".to_owned()));
     let present_user = User::empty().name("David".to_owned());
     let merged = optional_user.merge(present_user);

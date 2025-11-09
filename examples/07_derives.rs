@@ -13,11 +13,9 @@ struct User {
 fn main() {
     let user1 = User::empty().name("Alice".to_owned()).id(123);
 
-    // Clone works on partial structs
     let user2 = user1.clone();
     assert_eq!(user1, user2);
 
-    // PartialEq compares field values
     let user3 = User::empty().name("Alice".to_owned()).id(123);
     assert_eq!(user1, user3);
 
@@ -31,13 +29,12 @@ fn main() {
         .email("alice@example.com".to_owned())
         .id(123);
 
-    // This won't compile - different types:
+    // Won't compile - different types:
     // assert_eq!(partial, complete);
 
-    // But we can compare after projecting
+    // Compare after split
     let (complete_partial, _) = complete.split::<select!(user: name)>();
     assert_eq!(partial, complete_partial);
 
-    // Debug formatting works
     println!("{:?}", user1);
 }

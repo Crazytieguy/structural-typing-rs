@@ -20,11 +20,9 @@ impl<F: user::Fields<name = Present>> User<F> {
 }
 
 fn main() {
-    // Without email
     let user = User::empty().name("Alice".to_owned());
     assert_eq!(user.greet(), "Hello, Alice!");
 
-    // With email
     let user = user.email("alice@example.com".to_owned());
     assert_eq!(user.greet(), "Hello, Alice <alice@example.com>!");
 }
