@@ -1,4 +1,4 @@
-error[E0599]: the method `greet` exists for struct `User`, but its trait bounds were not satisfied
+error[E0599]: the method `greet` exists for struct `User<user::FieldSet<structural_typing::presence::Absent>>`, but its trait bounds were not satisfied
   --> tests/ui/greet_requires_name.rs:16:10
    |
  3 | #[structural]

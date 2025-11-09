@@ -54,7 +54,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     quote! {
         #derive_clause
         #(#other_attrs)*
-        #struct_vis struct #struct_name<F: #module_name::Fields = #module_name::with::all::Absent> {
+        #struct_vis struct #struct_name<F: #module_name::Fields = #module_name::with::all::Present> {
             #(#field_defs),*
         }
     }

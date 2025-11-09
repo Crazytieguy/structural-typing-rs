@@ -118,8 +118,7 @@ fn serde_with_select() {
     assert!(!json.contains("id"), "Absent field should not appear");
 
     let full_json = r#"{"name":"Grace","email":"grace@test.com","id":0}"#;
-    let deserialized: TestStruct<select!(test_struct: all)> =
-        serde_json::from_str(full_json).unwrap();
+    let deserialized: TestStruct = serde_json::from_str(full_json).unwrap();
     assert_eq!(deserialized.name, "Grace");
     assert_eq!(deserialized.email, "grace@test.com");
 }

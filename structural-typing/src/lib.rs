@@ -64,7 +64,7 @@ pub use structural_typing_macros::structural;
 /// # Syntax
 /// - `select!(module: field)` - field is Present
 /// - `select!(module: ?field)` - field is Optional
-/// - `select!(module: all)` - all fields Present (expands to `module::with::all::Present`)
+/// - `select!(module: ?all)` - all fields Optional
 /// - Multiple fields compose: `select!(module: field1, ?field2)` expands to `module::with::field1::Present<module::with::field2::Optional>`
 ///
 /// # Examples
@@ -72,10 +72,10 @@ pub use structural_typing_macros::structural;
 /// # use structural_typing::{structural, select};
 /// # #[structural]
 /// # struct User { name: String, email: String, id: u64 }
-/// // For User { name, email, id }
-/// type NameAndEmail = select!(user: name, email);
-/// type NameOptionalEmail = select!(user: name, ?email);
-/// type AllPresent = select!(user: all);
+///
+/// type Create = select!(user: name, email);
+/// type Update = select!(user: ?name, ?email);
+/// fn create_user(user: User<Create>) {...}
 /// ```
 #[macro_export]
 macro_rules! select {
