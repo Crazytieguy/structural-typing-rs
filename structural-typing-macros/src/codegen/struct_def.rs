@@ -47,7 +47,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         quote! {}
     } else {
         quote! {
-            #[::derive_where::derive_where(#(#derives),*; #(#derive_bounds),*)]
+            #[::structural_typing::derive_where::derive_where(#(#derives),*; #(#derive_bounds),*)]
         }
     };
 

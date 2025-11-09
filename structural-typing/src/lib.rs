@@ -48,6 +48,9 @@ pub mod split;
 
 pub use structural_typing_macros::structural;
 
+#[doc(hidden)]
+pub use derive_where;
+
 /// Construct a `FieldSet` by selecting fields from a module.
 ///
 /// # Syntax
