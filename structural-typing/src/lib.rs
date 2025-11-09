@@ -1,6 +1,6 @@
 //! # Structural Typing for Rust
 //!
-//! Track which struct fields are present/absent at the type level.
+//! Define a struct once and use it with different field combinations, tracked at compile time.
 //!
 //! ## Installation
 //!
@@ -19,33 +19,38 @@
 //! use structural_typing::{structural, presence::Present, select};
 //!
 //! #[structural]
-//! struct User { name: String, email: String }
+//! struct User { id: u32, name: String, email: String }
 //!
-//! // Build incrementally - type tracks which fields are set
-//! let user = User::empty().name("Alice".to_owned());
+//! type Create = select!(user: name, email);
 //!
-//! // Methods can require specific fields
-//! impl<F: user::Fields<name = Present>> User<F> {
-//!     fn greet(&self) -> String {
-//!         format!("Hello, {}!", self.name)
-//!     }
+//! fn create_user(data: User<Create>) -> User {
+//!     data.id(generate_id())
 //! }
 //!
-//! user.greet(); // ✓ Compiles - name is Present
-//! // User::empty().greet(); // ✗ Compile error - name is Absent
-//!
-//! // Use select! to create field sets
-//! type NameAndEmail = select!(user: name, email);
+//! fn update_user<F: user::Fields<id = Present>>(data: User<F>) {
+//!     if let Some(name) = data.get_name() {
+//!         update_in_db(data.id, name);
+//!     }
+//! }
+//! # fn generate_id() -> u32 { 42 }
+//! # fn update_in_db(_id: u32, _name: &String) {}
 //! ```
 //!
 //! ## Core Concepts
 //!
-//! - **Field States**: `Present` (has value), `Optional` (has `Option<T>`), `Absent` (no value)
-//! - **Builder API**: `.field(value)` infers presence from type (`T` → `Present`, `Option<T>` → `Optional`, `PhantomData<T>` → Absent)
-//! - **Type Selection**: `select!(module: field1, ?field2)` macro or direct type aliases
-//! - **Bounded Impls**: Methods requiring specific fields via trait bounds
+//! - **Field States**: `Present`, `Optional`, `Absent`
+//! - **Builder API**: `.field(value)` infers presence from type
+//! - **Type Selection**: `select!` macro or type aliases
+//! - **Bounded Impls**: Require specific fields via trait bounds
+//! - **Merge and Split**: Combine partial structs or extract field subsets
 //!
 //! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage including merge, split, serde integration, and more.
+//!
+//! ## Constraints
+//!
+//! - Named structs only (not tuple structs or enums)
+//! - No generic parameters
+//! - At least one field required
 
 #![deny(missing_docs)]
 #![warn(clippy::pedantic)]

@@ -1,6 +1,8 @@
 # Structural Typing for Rust
 
-Define structs with optional fields, tracked at the type level. Inspired by TypeScript, RDF, and [this talk](https://www.youtube.com/watch?v=YR5WdGrpoug&list=PLZdCLR02grLrEwKaZv-5QbUzK0zGKOOcr&index=2&t=9s).
+Define a struct once and use it with different field combinations, tracked at compile time. Inspired by TypeScript, RDF, and [this talk](https://www.youtube.com/watch?v=YR5WdGrpoug).
+
+**Status**: Experimental. API subject to change.
 
 ## Installation
 
@@ -16,52 +18,57 @@ cargo add derive-where
 ## Example
 
 ```rust
-use structural_typing::{structural, presence::Present};
+use structural_typing::{structural, presence::Present, select};
 
 #[structural]
-#[derive(Clone, Debug)]
 struct User {
+    id: u32,
     name: String,
     email: String,
-    age: u32,
+}
+
+type Create = select!(user: name, email);
+
+fn create_user(data: User<Create>) -> User {
+    data.id(generate_id())
+}
+
+fn update_user<F: user::Fields<id = Present>>(data: User<F>) {
+    if let Some(name) = data.get_name() {
+        update_in_db(data.id, name);
+    }
 }
 
 fn main() {
-    // Build with some fields
-    let user = User::empty()
+    let new_user = User::empty()
         .name("Alice".to_owned())
         .email("alice@example.com".to_owned());
 
-    // This compiles - greet() requires name field
-    println!("{}", user.greet());
+    let user = create_user(new_user);
 
-    let user = user.age(30);
-    // Now all fields present
+    let partial = User::empty().id(user.id).name(Some("Bob".to_owned()));
+    update_user(partial);
 }
 
-// Methods that require specific fields
-// Note: #[structural] generates a snake_case module (User → user)
-impl<F: user::Fields<name = Present>> User<F> {
-    fn greet(&self) -> String {
-        format!("Hello, {}!", self.name)
-    }
-}
+fn generate_id() -> u32 { 42 }
+fn update_in_db(id: u32, name: &String) { /* ... */ }
 ```
 
 See [examples/](examples/) for comprehensive usage including merge, split, serde integration, and more.
 
 ## Features
 
-- Type-level field tracking (`Present`, `Optional`, `Absent`)
-- Compile-time enforcement of field requirements
-- Builder pattern with `.field()` that infers presence from value type
-- Type-safe merge and split
-- Automatic serde support
+- Compile-time field requirements
+- Builder API with type inference
+- Merge and split operations
+- Serde support (via `serde` feature)
 - Zero runtime overhead
 
-## Status
+## Constraints
 
-Experimental. API subject to change.
+- Named structs only (not tuple structs or enums)
+- No generic parameters
+- At least one field required
 
 ## License
 
