@@ -9,6 +9,11 @@ mod parsing;
 /// This macro transforms a struct to track which fields are present/absent at the type level,
 /// enabling compile-time enforcement of field requirements.
 ///
+/// **Note**: If you use `#[derive(...)]` on your struct, you must add `derive-where` to your dependencies:
+/// ```bash
+/// cargo add derive-where
+/// ```
+///
 /// # Generated Code
 ///
 /// For a struct `MyStruct`, this macro generates:

@@ -8,6 +8,11 @@ Define structs with optional fields, tracked at the type level. Inspired by Type
 cargo add structural-typing
 ```
 
+If you use derives on your `#[structural]` structs, also add:
+```bash
+cargo add derive-where
+```
+
 ## Example
 
 ```rust

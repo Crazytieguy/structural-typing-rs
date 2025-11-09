@@ -2,6 +2,17 @@
 //!
 //! Track which struct fields are present/absent at the type level.
 //!
+//! ## Installation
+//!
+//! ```bash
+//! cargo add structural-typing
+//! ```
+//!
+//! If using derives on `#[structural]` structs, also add:
+//! ```bash
+//! cargo add derive-where
+//! ```
+//!
 //! ## Quick Example
 //!
 //! ```
@@ -47,9 +58,6 @@ pub mod presence;
 pub mod split;
 
 pub use structural_typing_macros::structural;
-
-#[doc(hidden)]
-pub use derive_where;
 
 /// Construct a `FieldSet` by selecting fields from a module.
 ///
