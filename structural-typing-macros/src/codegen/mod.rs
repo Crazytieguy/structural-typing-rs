@@ -3,7 +3,7 @@ mod constructors;
 mod fields_module;
 mod getters;
 mod merge;
-mod split;
+mod extract;
 mod struct_def;
 
 use proc_macro2::TokenStream;
@@ -21,7 +21,7 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
     let builders = builders::generate(&info);
     let getters = getters::generate(&info);
     let merge = merge::generate(&info);
-    let split = split::generate(&info);
+    let extract = extract::generate(&info);
 
     Ok(quote! {
         #fields_mod
@@ -36,6 +36,6 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
 
         #merge
 
-        #split
+        #extract
     })
 }

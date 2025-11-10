@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::Ident;
+use syn::{Ident, Type};
 
 use crate::parsing::StructInfo;
 
@@ -51,12 +51,13 @@ fn generate_merge_fields(field_names: &[&Ident]) -> Vec<TokenStream> {
         .collect()
 }
 
-fn generate_omit_fields(field_names: &[&Ident]) -> Vec<TokenStream> {
+fn generate_remainder_fields(field_names: &[&Ident], field_types: &[&Type]) -> Vec<TokenStream> {
     field_names
         .iter()
-        .map(|name| {
+        .zip(field_types.iter())
+        .map(|(name, ty)| {
             quote! {
-                <<F2 as Fields>::#name as ::structural_typing::presence::Presence>::RemainderFrom<<F1 as Fields>::#name>
+                <<<<F2 as Fields>::#name as ::structural_typing::presence::Presence>::Output<#ty> as ::structural_typing::access::Access<#ty>>::RemainderFrom<<<F1 as Fields>::#name as ::structural_typing::presence::Presence>::Output<#ty>> as ::structural_typing::presence::InferPresence<#ty>>::Presence
             }
         })
         .collect()
@@ -181,12 +182,13 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     let module_name = &info.module_name;
     let vis = &info.vis;
     let field_names: Vec<_> = info.fields.iter().map(|f| &f.name).collect();
+    let field_types: Vec<_> = info.fields.iter().map(|f| &f.ty).collect();
 
     let field_type_assocs = generate_fields_trait_parts(&field_names);
     let (fieldset_phantom_types, fieldset_params, fieldset_assocs) =
         generate_fieldset_parts(&field_names);
     let merge_fields = generate_merge_fields(&field_names);
-    let omit_fields = generate_omit_fields(&field_names);
+    let remainder_fields = generate_remainder_fields(&field_names, &field_types);
     let with_modules = generate_with_modules(&field_names);
 
     quote! {
@@ -224,9 +226,9 @@ pub fn generate(info: &StructInfo) -> TokenStream {
                 #(#merge_fields),*
             >;
 
-            /// Remove fields selected by F2 from F1.
-            pub type Omit<F1, F2> = FieldSet<
-                #(#omit_fields),*
+            /// Remainder after extracting F2 from F1.
+            pub type Remainder<F1, F2> = FieldSet<
+                #(#remainder_fields),*
             >;
 
             #with_modules

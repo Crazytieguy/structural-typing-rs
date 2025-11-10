@@ -54,13 +54,13 @@ fn generate_id() -> u32 { 42 }
 fn update_in_db(id: u32, name: &String) { /* ... */ }
 ```
 
-See [examples/](examples/) for comprehensive usage including merge, split, serde integration, and more.
+See [examples/](examples/) for comprehensive usage including merge, extract, serde integration, and more.
 
 ## Features
 
 - Compile-time field requirements
 - Builder API with type inference
-- Merge and split operations
+- Merge and extract operations
 - Serde support (via `serde` feature)
 - Zero runtime overhead
 

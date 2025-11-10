@@ -2,7 +2,7 @@
 
 use core::marker::PhantomData;
 
-use crate::access::Access;
+use crate::{access::Access, extract::Extract};
 
 /// Marker indicating a field is present with a concrete value.
 pub struct Present;
@@ -17,10 +17,11 @@ pub trait Presence {
     type OptionOrSelf: Presence;
     /// Result of merging this presence with another.
     type Or<Other: Presence>: Presence;
-    /// Remainder when extracting Self: Present/Optional → Absent, Absent → Source.
-    type RemainderFrom<Source: Presence>: Presence;
     /// Container type (T, Option\<T>, or `PhantomData`\<T>).
-    type Output<T>: Access<T>;
+    type Output<T>: Access<T>
+        + Extract<PhantomData<T>, T>
+        + Extract<Option<T>, T>
+        + Extract<Self::Output<T>, T>;
 
     /// Merge two values, preferring the first if present.
     fn or<T, Other: Presence>(
@@ -56,7 +57,6 @@ impl<T> InferPresence<T> for PhantomData<T> {
 impl Presence for Present {
     type OptionOrSelf = Present;
     type Or<Other: Presence> = Present;
-    type RemainderFrom<Source: Presence> = Absent;
     type Output<T> = T;
 
     #[inline]
@@ -79,7 +79,6 @@ impl Presence for Present {
 impl Presence for Optional {
     type OptionOrSelf = Optional;
     type Or<Other: Presence> = Other::OptionOrSelf;
-    type RemainderFrom<Source: Presence> = Absent;
     type Output<T> = Option<T>;
 
     #[inline]
@@ -102,7 +101,6 @@ impl Presence for Optional {
 impl Presence for Absent {
     type OptionOrSelf = Optional;
     type Or<Other: Presence> = Other;
-    type RemainderFrom<Source: Presence> = Source;
     type Output<T> = PhantomData<T>;
 
     #[inline]

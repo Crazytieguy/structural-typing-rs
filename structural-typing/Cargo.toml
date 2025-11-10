@@ -41,12 +41,12 @@ name = "04_merge"
 path = "../examples/04_merge.rs"
 
 [[example]]
-name = "05_split"
-path = "../examples/05_split.rs"
+name = "05_extract"
+path = "../examples/05_extract.rs"
 
 [[example]]
-name = "06_try_split"
-path = "../examples/06_try_split.rs"
+name = "06_try_extract"
+path = "../examples/06_try_extract.rs"
 
 [[example]]
 name = "07_derives"

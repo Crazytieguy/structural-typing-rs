@@ -42,9 +42,9 @@
 //! - **Builder API**: `.field(value)` infers presence from type
 //! - **Type Selection**: `select!` macro or type aliases
 //! - **Bounded Impls**: Require specific fields via trait bounds
-//! - **Merge and Split**: Combine partial structs or extract field subsets
+//! - **Merge and Extract**: Combine partial structs or extract field subsets
 //!
-//! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage including merge, split, serde integration, and more.
+//! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage including merge, extract, serde integration, and more.
 //!
 //! ## Constraints
 //!
@@ -60,7 +60,7 @@ pub mod access;
 /// Type-level presence markers and traits for field state tracking.
 pub mod presence;
 /// Traits for splitting structs into selected fields and remainder.
-pub mod split;
+pub mod extract;
 
 pub use structural_typing_macros::structural;
 

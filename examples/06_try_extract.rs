@@ -1,4 +1,4 @@
-//! Fallible split with try_split() for Optional→Present conversion.
+//! Fallible extraction with try_extract() for Optional→Present conversion.
 
 use structural_typing::{select, structural};
 
@@ -22,7 +22,7 @@ fn main() {
         .email("bob@example.com".to_owned());
     let expected_remainder = User::empty().id(456);
 
-    match complete.try_split::<select!(user: name, email)>() {
+    match complete.try_extract::<select!(user: name, email)>() {
         Ok((credentials, remainder)) => {
             assert_eq!(credentials, expected_credentials);
             assert_eq!(remainder, expected_remainder);
@@ -37,7 +37,7 @@ fn main() {
         .id(789);
 
     let cloned = partial.clone();
-    match partial.try_split::<select!(user: name, email)>() {
+    match partial.try_extract::<select!(user: name, email)>() {
         Ok(_) => panic!("Expected error"),
         Err(original) => {
             assert_eq!(original, cloned);

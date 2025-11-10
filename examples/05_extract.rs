@@ -1,4 +1,4 @@
-//! Extracting field subsets with split() and select!().
+//! Extracting field subsets with extract() and select!().
 
 use structural_typing::{select, structural};
 
@@ -16,14 +16,14 @@ fn main() {
         .email("alice@example.com".to_owned())
         .id(123);
 
-    let (credentials, remainder) = user.split::<select!(user: name, email)>();
+    let (credentials, remainder) = user.extract::<select!(user: name, email)>();
     assert_eq!(credentials.name, "Alice");
     assert_eq!(credentials.email, "alice@example.com");
     assert_eq!(remainder.id, 123);
 
     // Convert to Optional
     let partial = User::empty().name("Bob".to_owned());
-    let (optional_creds, _) = partial.split::<select!(user: ?name, ?email)>();
+    let (optional_creds, _) = partial.extract::<select!(user: ?name, ?email)>();
     assert_eq!(optional_creds.name, Some("Bob".to_owned()));
     assert_eq!(optional_creds.email, None);
 }

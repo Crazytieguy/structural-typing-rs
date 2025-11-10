@@ -12,6 +12,7 @@ struct TestStruct {
 }
 
 #[structural]
+#[derive(Debug)]
 struct RawIdConfig {
     r#type: String,
     r#match: bool,
@@ -155,7 +156,7 @@ fn split_with_select() {
         .email("charlie@test.com".to_owned())
         .id(789);
 
-    let (selected, remainder) = full.split::<select!(test_struct: name, id)>();
+    let (selected, remainder) = full.extract::<select!(test_struct: name, id)>();
     assert_eq!(selected.name, "Charlie");
     assert_eq!(selected.id, 789);
     assert!(selected.get_email().is_none());
@@ -166,19 +167,19 @@ fn split_with_select() {
 }
 
 #[test]
-fn try_split_failure() {
+fn try_extract_failure() {
     // Fails when Optional is None but Present required
     let optional_email: TestStruct<select!(test_struct: name, ?email)> =
         TestStruct::empty().name("Test".to_owned()).email(None);
-    let result = optional_email.try_split::<select!(test_struct: name, email)>();
+    let result = optional_email.try_extract::<select!(test_struct: name, email)>();
     assert!(
         result.is_err(),
-        "try_split should fail when Optional field is None but target needs Present"
+        "try_extract should fail when Optional field is None but target needs Present"
     );
 }
 
 #[test]
-fn try_split_returns_exact_original() {
+fn try_extract_returns_exact_original() {
     // Returns exact original on failure
     let original: TestStruct<select!(test_struct: name, ?email, id)> = TestStruct::empty()
         .name("Alice".to_owned())
@@ -186,18 +187,18 @@ fn try_split_returns_exact_original() {
         .id(123);
 
     let cloned = original.clone();
-    let result = original.try_split::<select!(test_struct: name, email, id)>();
+    let result = original.try_extract::<select!(test_struct: name, email, id)>();
 
     assert!(result.is_err());
     let returned = result.unwrap_err();
     assert_eq!(
         returned, cloned,
-        "try_split should return exact original on failure"
+        "try_extract should return exact original on failure"
     );
 }
 
 #[test]
-fn try_split_failure_at_different_positions() {
+fn try_extract_failure_at_different_positions() {
     // Failure: Optional in middle
     let partial: TestStruct<select!(test_struct: name, ?email, id)> = TestStruct::empty()
         .name("Bob".to_owned())
@@ -205,7 +206,7 @@ fn try_split_failure_at_different_positions() {
         .id(456);
 
     let cloned = partial.clone();
-    let result = partial.try_split::<select!(test_struct: name, email, id)>();
+    let result = partial.try_extract::<select!(test_struct: name, email, id)>();
 
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), cloned);
@@ -217,18 +218,18 @@ fn try_split_failure_at_different_positions() {
         .id(None);
 
     let cloned2 = partial2.clone();
-    let result2 = partial2.try_split::<select!(test_struct: name, email, id)>();
+    let result2 = partial2.try_extract::<select!(test_struct: name, email, id)>();
 
     assert!(result2.is_err());
     assert_eq!(result2.unwrap_err(), cloned2);
 }
 
 #[test]
-fn try_split_without_clone() {
+fn try_extract_without_clone() {
     // Works without Clone
     let ncs = NoClone::empty().value("test".to_owned()).id(42);
 
-    match ncs.try_split::<select!(no_clone: value)>() {
+    match ncs.try_extract::<select!(no_clone: value)>() {
         Ok((selected, remainder)) => {
             assert_eq!(selected.value, "test");
             assert_eq!(remainder.id, 42);
@@ -239,7 +240,7 @@ fn try_split_without_clone() {
     // Failure without Clone
     let ncs2 = NoClone::empty().value(None).id(99);
 
-    match ncs2.try_split::<select!(no_clone: value)>() {
+    match ncs2.try_extract::<select!(no_clone: value)>() {
         Ok(_) => panic!("Expected error when Optional is None"),
         Err(returned) => {
             assert_eq!(returned.get_value(), None);
@@ -249,7 +250,7 @@ fn try_split_without_clone() {
 }
 
 #[test]
-fn try_split_multiple_optional_fields() {
+fn try_extract_multiple_optional_fields() {
     // Multiple Optional: only second None
     let partial: TestStruct<select!(test_struct: ?name, ?email, id)> = TestStruct::empty()
         .name(Some("Alice".to_owned()))
@@ -257,14 +258,14 @@ fn try_split_multiple_optional_fields() {
         .id(123);
 
     let cloned = partial.clone();
-    let result = partial.try_split::<select!(test_struct: name, email)>();
+    let result = partial.try_extract::<select!(test_struct: name, email)>();
 
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), cloned);
 }
 
 #[test]
-fn try_split_success_then_merge_and_reverse_split() {
+fn try_extract_success_then_merge_and_reverse_split() {
     let original = TestStruct::empty()
         .name("Bob".to_owned())
         .email("bob@test.com".to_owned())
@@ -273,7 +274,7 @@ fn try_split_success_then_merge_and_reverse_split() {
     let original_cloned = original.clone();
 
     // Convert email: Present → Optional
-    let result = original.try_split::<select!(test_struct: name, ?email)>();
+    let result = original.try_extract::<select!(test_struct: name, ?email)>();
     assert!(result.is_ok());
     let (selected, remainder) = result.unwrap();
 
@@ -291,7 +292,7 @@ fn try_split_success_then_merge_and_reverse_split() {
     assert_eq!(reconstructed, expected_reconstructed);
 
     // Convert back: Optional → Present
-    let result2 = reconstructed.try_split::<select!(test_struct: email)>();
+    let result2 = reconstructed.try_extract::<select!(test_struct: email)>();
     assert!(result2.is_ok());
     let (selected2, remainder2) = result2.unwrap();
 
@@ -361,6 +362,42 @@ fn raw_identifiers() {
 }
 
 #[test]
+fn raw_identifiers_extract() {
+    let cfg = RawIdConfig::empty()
+        .r#type("test".to_owned())
+        .r#match(true)
+        .normal(42);
+
+    let (extracted, remainder) = cfg.extract::<select!(raw_id_config: r#type, r#match)>();
+    assert_eq!(extracted.r#type, "test");
+    assert!(extracted.r#match);
+    assert_eq!(remainder.normal, 42);
+}
+
+#[test]
+fn raw_identifiers_try_extract() {
+    let cfg = RawIdConfig::empty()
+        .r#type(Some("optional".to_owned()))
+        .r#match(Some(false))
+        .normal(99);
+
+    let result = cfg.try_extract::<select!(raw_id_config: r#type, r#match)>();
+    assert!(result.is_ok());
+    let (extracted, remainder) = result.unwrap();
+    assert_eq!(extracted.r#type, "optional");
+    assert!(!extracted.r#match);
+    assert_eq!(remainder.normal, 99);
+
+    let partial = RawIdConfig::empty()
+        .r#type(Some("value".to_owned()))
+        .r#match(None)
+        .normal(77);
+
+    let result = partial.try_extract::<select!(raw_id_config: r#type, r#match)>();
+    assert!(result.is_err());
+}
+
+#[test]
 fn select_with_module_path() {
     type NameOnly = select!(crate::test_struct: name);
     let val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
@@ -397,6 +434,41 @@ fn select_with_trailing_comma() {
     type OptionalName = select!(test_struct: ?name,);
     let val3: TestStruct<OptionalName> = TestStruct::empty().name(Some("Charlie".to_owned()));
     assert_eq!(val3.name, Some("Charlie".to_owned()));
+}
+
+#[test]
+fn generic_extract_to_absent() {
+    fn remove_email<F: test_struct::Fields>(data: TestStruct<F>) -> TestStruct<test_struct::with::email::Absent<F>> {
+        let (extracted, _) = data.extract::<test_struct::with::email::Absent<F>>();
+        extracted
+    }
+
+    let complete = TestStruct::empty()
+        .name("Alice".to_owned())
+        .email("alice@example.com".to_owned())
+        .id(123);
+
+    let without_email = remove_email(complete);
+    assert_eq!(without_email.name, "Alice");
+    assert_eq!(without_email.id, 123);
+}
+
+#[test]
+fn generic_extract_to_optional() {
+    fn extract_name_as_optional<F: test_struct::Fields>(
+        data: TestStruct<F>,
+    ) -> TestStruct<select!(test_struct: ?name)> {
+        let (extracted, _) = data.extract::<select!(test_struct: ?name)>();
+        extracted
+    }
+
+    let complete = TestStruct::empty()
+        .name("Bob".to_owned())
+        .email("bob@example.com".to_owned())
+        .id(456);
+
+    let with_optional_name = extract_name_as_optional(complete);
+    assert_eq!(with_optional_name.name, Some("Bob".to_owned()));
 }
 
 impl<F: test_struct::Fields<name = Present>> TestStruct<F> {

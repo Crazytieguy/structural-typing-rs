@@ -32,8 +32,8 @@ fn main() {
     // Won't compile - different types:
     // assert_eq!(partial, complete);
 
-    // Compare after split
-    let (complete_partial, _) = complete.split::<select!(user: name)>();
+    // Compare after extract
+    let (complete_partial, _) = complete.extract::<select!(user: name)>();
     assert_eq!(partial, complete_partial);
 
     println!("{:?}", user1);
