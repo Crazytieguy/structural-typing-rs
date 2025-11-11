@@ -1,5 +1,5 @@
 [workspace]
-members = ["structural-typing", "structural-typing-macros"]
+members = ["structural-typing", "structural-typing-macros", "examples/*"]
 resolver = "2"
 
 [workspace.package]
