@@ -17,6 +17,7 @@ pub struct FieldInfo {
     pub name: Ident,
     pub ty: Type,
     pub vis: Visibility,
+    pub attrs: Vec<Attribute>,
 }
 
 pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
@@ -51,7 +52,13 @@ pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
             let name = field.ident.expect("named field must have an ident");
             let ty = field.ty;
             let vis = field.vis;
-            FieldInfo { name, ty, vis }
+            let attrs = field.attrs;
+            FieldInfo {
+                name,
+                ty,
+                vis,
+                attrs,
+            }
         })
         .collect();
 

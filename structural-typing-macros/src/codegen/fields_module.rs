@@ -178,7 +178,7 @@ fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
     }
 }
 
-pub fn generate(info: &StructInfo) -> TokenStream {
+pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenStream {
     let module_name = &info.module_name;
     let vis = &info.vis;
     let field_names: Vec<_> = info.fields.iter().map(|f| &f.name).collect();
@@ -196,6 +196,8 @@ pub fn generate(info: &StructInfo) -> TokenStream {
             use super::*;
             use ::core::marker::PhantomData;
             use ::structural_typing::presence::{Presence, Present, Optional, Absent};
+
+            #serde_helper
 
             mod sealed {
                 pub trait Sealed {}

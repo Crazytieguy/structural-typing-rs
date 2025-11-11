@@ -1,0 +1,5 @@
+error: structural typing does not support #[serde(transparent)]
+ --> tests/ui/serde_transparent_rejected.rs:6:1
+  |
+6 | #[serde(transparent)]
+  | ^^^^^^^^^^^^^^^^^^^^^

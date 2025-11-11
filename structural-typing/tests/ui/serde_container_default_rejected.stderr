@@ -1,0 +1,5 @@
+error: structural typing does not support #[serde(default)] on containers
+ --> tests/ui/serde_container_default_rejected.rs:6:1
+  |
+6 | #[serde(default)]
+  | ^^^^^^^^^^^^^^^^^

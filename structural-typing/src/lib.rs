@@ -44,7 +44,9 @@
 //! - **Bounded Impls**: Require specific fields via trait bounds
 //! - **Merge and Extract**: Combine partial structs or extract field subsets
 //!
-//! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage including merge, extract, serde integration, and more.
+//! For serde integration and other details, see the [`structural`] macro documentation.
+//!
+//! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage.
 //!
 //! ## Constraints
 //!

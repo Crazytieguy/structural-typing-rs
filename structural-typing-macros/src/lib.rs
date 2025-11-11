@@ -53,6 +53,23 @@ mod parsing;
 /// user.greet(); // ✓ Compiles
 /// ```
 ///
+/// # Serde Support
+///
+/// Deserialization uses a helper struct where all fields are `Option<T>` with `#[serde(default)]`,
+/// then converts via `TryFrom`. Present fields error if missing, Optional fields become `Some`/`None`,
+/// Absent fields are ignored.
+///
+/// **Limitations:**
+/// - Present fields cannot use the field type's `Default` impl during deserialization
+/// - Optional fields cannot distinguish between missing and explicit `null` in JSON
+/// - Absent fields silently ignore data if present in input
+/// - All field types must implement `Deserialize` even if marked Absent
+///
+/// **Custom deserializers:** If using `#[serde(deserialize_with)]`, the function must produce `Option<T>`.
+///
+/// **Incompatible:** `#[serde(default)]`, `#[serde(skip)]`, `#[serde(skip_deserializing)]`, `#[serde(flatten)]`.
+/// **Compatible:** `rename`, `alias`, `rename_all`, `deserialize_with` (with `Option<T>` output).
+///
 /// # Restrictions
 ///
 /// - Named structs only

@@ -1,0 +1,5 @@
+error: structural typing does not support #[serde(default)] on fields
+ --> tests/ui/serde_default_rejected.rs:8:5
+  |
+8 |     #[serde(default)]
+  |     ^^^^^^^^^^^^^^^^^

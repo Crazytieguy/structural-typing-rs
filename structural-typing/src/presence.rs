@@ -2,7 +2,7 @@
 
 use core::marker::PhantomData;
 
-use crate::{access::Access, extract::Extract};
+use crate::{access::Access, extract::{Extract, TryExtract}};
 
 /// Marker indicating a field is present with a concrete value.
 pub struct Present;
@@ -21,7 +21,8 @@ pub trait Presence {
     type Output<T>: Access<T>
         + Extract<PhantomData<T>, T>
         + Extract<Option<T>, T>
-        + Extract<Self::Output<T>, T>;
+        + Extract<Self::Output<T>, T>
+        + TryExtract<Option<T>, T>;
 
     /// Merge two values, preferring the first if present.
     fn or<T, Other: Presence>(

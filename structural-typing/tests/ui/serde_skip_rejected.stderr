@@ -1,0 +1,5 @@
+error: structural typing does not support #[serde(skip)] or #[serde(skip_deserializing)]
+ --> tests/ui/serde_skip_rejected.rs:8:5
+  |
+8 |     #[serde(skip)]
+  |     ^^^^^^^^^^^^^^

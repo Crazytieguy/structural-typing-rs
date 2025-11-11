@@ -1,0 +1,5 @@
+error: structural typing does not support #[serde(flatten)]
+  --> tests/ui/serde_flatten_rejected.rs:13:5
+   |
+13 |     #[serde(flatten)]
+   |     ^^^^^^^^^^^^^^^^^

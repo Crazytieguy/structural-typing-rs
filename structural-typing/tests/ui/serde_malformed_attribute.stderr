@@ -1,0 +1,5 @@
+error: unknown serde field attribute `invalid_attribute`
+ --> tests/ui/serde_malformed_attribute.rs:6:13
+  |
+6 |     #[serde(invalid_attribute)]
+  |             ^^^^^^^^^^^^^^^^^

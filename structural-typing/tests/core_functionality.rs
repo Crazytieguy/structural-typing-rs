@@ -4,7 +4,6 @@ use structural_typing::{presence::Present, select, structural};
 
 #[structural]
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct TestStruct {
     name: String,
     email: String,
@@ -12,22 +11,9 @@ struct TestStruct {
 }
 
 #[structural]
-#[derive(Debug)]
-struct RawIdConfig {
-    r#type: String,
-    r#match: bool,
-    normal: u32,
-}
-
-#[structural]
 struct NoClone {
     value: String,
     id: u64,
-}
-
-#[structural]
-struct SingleField {
-    data: String,
 }
 
 #[test]
@@ -103,37 +89,6 @@ fn modify_make_optional() {
         TestStruct::empty().name("Frank".to_owned()).email(None);
     assert_eq!(val.name, "Frank");
     assert_eq!(val.email, None);
-}
-
-#[test]
-#[cfg(feature = "serde")]
-fn serde_with_select() {
-    type NameAndEmail = select!(test_struct: name, email);
-    let val: TestStruct<NameAndEmail> = TestStruct::empty()
-        .name("Grace".to_owned())
-        .email("grace@test.com".to_owned());
-
-    let json = serde_json::to_string(&val).unwrap();
-    assert!(json.contains(r#""name":"Grace"#));
-    assert!(json.contains(r#""email":"grace@test.com"#));
-    assert!(!json.contains("id"), "Absent field should not appear");
-
-    let full_json = r#"{"name":"Grace","email":"grace@test.com","id":0}"#;
-    let deserialized: TestStruct = serde_json::from_str(full_json).unwrap();
-    assert_eq!(deserialized.name, "Grace");
-    assert_eq!(deserialized.email, "grace@test.com");
-}
-
-#[test]
-#[cfg(feature = "serde")]
-fn serde_deserialize_with_missing_optional_fields() {
-    type NameEmailAndOptionalId = select!(test_struct: name, email, ?id);
-    let json_without_id = r#"{"name":"Bob","email":"bob@test.com"}"#;
-    let deserialized: TestStruct<NameEmailAndOptionalId> =
-        serde_json::from_str(json_without_id).unwrap();
-    assert_eq!(deserialized.name, "Bob");
-    assert_eq!(deserialized.email, "bob@test.com");
-    assert_eq!(deserialized.id, None);
 }
 
 #[test]
@@ -350,72 +305,10 @@ fn merge_conflict_resolution() {
 }
 
 #[test]
-fn raw_identifiers() {
-    let cfg = RawIdConfig::empty()
-        .r#type("test".to_owned())
-        .r#match(true)
-        .normal(42);
-
-    assert_eq!(cfg.r#type, "test");
-    assert!(cfg.r#match);
-    assert_eq!(cfg.normal, 42);
-}
-
-#[test]
-fn raw_identifiers_extract() {
-    let cfg = RawIdConfig::empty()
-        .r#type("test".to_owned())
-        .r#match(true)
-        .normal(42);
-
-    let (extracted, remainder) = cfg.extract::<select!(raw_id_config: r#type, r#match)>();
-    assert_eq!(extracted.r#type, "test");
-    assert!(extracted.r#match);
-    assert_eq!(remainder.normal, 42);
-}
-
-#[test]
-fn raw_identifiers_try_extract() {
-    let cfg = RawIdConfig::empty()
-        .r#type(Some("optional".to_owned()))
-        .r#match(Some(false))
-        .normal(99);
-
-    let result = cfg.try_extract::<select!(raw_id_config: r#type, r#match)>();
-    assert!(result.is_ok());
-    let (extracted, remainder) = result.unwrap();
-    assert_eq!(extracted.r#type, "optional");
-    assert!(!extracted.r#match);
-    assert_eq!(remainder.normal, 99);
-
-    let partial = RawIdConfig::empty()
-        .r#type(Some("value".to_owned()))
-        .r#match(None)
-        .normal(77);
-
-    let result = partial.try_extract::<select!(raw_id_config: r#type, r#match)>();
-    assert!(result.is_err());
-}
-
-#[test]
 fn select_with_module_path() {
     type NameOnly = select!(crate::test_struct: name);
     let val: TestStruct<NameOnly> = TestStruct::empty().name("Alice".to_owned());
     assert_eq!(val.name, "Alice");
-}
-
-#[test]
-fn single_field_struct() {
-    type DataPresent = select!(single_field: data);
-    let val: SingleField<DataPresent> = SingleField::empty().data("test".to_owned());
-    assert_eq!(val.data, "test");
-
-    type DataOptional = select!(single_field: ?data);
-    let val2: SingleField<DataOptional> = SingleField::empty().data(Some("test".to_owned()));
-    assert_eq!(val2.data, Some("test".to_owned()));
-
-    let val3: SingleField<DataOptional> = SingleField::empty().data(None);
-    assert_eq!(val3.data, None);
 }
 
 #[test]

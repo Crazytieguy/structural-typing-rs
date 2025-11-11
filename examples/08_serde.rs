@@ -1,7 +1,7 @@
 //! Serialization with different field states.
 
 use serde::{Deserialize, Serialize};
-use structural_typing::structural;
+use structural_typing::{structural, select};
 
 #[structural]
 #[derive(Serialize, Deserialize)]
@@ -31,4 +31,9 @@ fn main() {
     let json = r#"{"name":"Charlie","email":"c@example.com","id":789}"#;
     let user: User = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Charlie");
+
+    let json_missing_email = r#"{"name":"Dave","id":999}"#;
+    let user: User<select!(user: name, id)> = serde_json::from_str(json_missing_email).unwrap();
+    assert_eq!(user.name, "Dave");
+    assert_eq!(user.id, 999);
 }

@@ -17,6 +17,21 @@ pub trait Access<T>: InferPresence<T> {
     fn get_mut(&mut self) -> Option<&mut T>;
     /// Consume and convert to Option.
     fn into_option(self) -> Option<T>;
+
+    /// Construct from a value.
+    fn from_value(value: T) -> (Self, Self::RemainderFrom<T>)
+    where
+        Self: Sized;
+
+    /// Try to construct from an option.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` with the original `Option<T>` if the conversion cannot be performed.
+    #[allow(clippy::type_complexity)]
+    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>>
+    where
+        Self: Sized;
 }
 
 /// Helper function to check if a field is absent (used by serde).
@@ -41,6 +56,16 @@ impl<T> Access<T> for PhantomData<T> {
     fn into_option(self) -> Option<T> {
         None
     }
+
+    #[inline]
+    fn from_value(value: T) -> (Self, Self::RemainderFrom<T>) {
+        (PhantomData, value)
+    }
+
+    #[inline]
+    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
+        Ok((PhantomData, value))
+    }
 }
 
 impl<T: Sized> Access<T> for T {
@@ -60,6 +85,19 @@ impl<T: Sized> Access<T> for T {
     fn into_option(self) -> Option<T> {
         Some(self)
     }
+
+    #[inline]
+    fn from_value(value: T) -> (Self, Self::RemainderFrom<T>) {
+        (value, PhantomData)
+    }
+
+    #[inline]
+    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
+        match value {
+            Some(v) => Ok((v, PhantomData)),
+            None => Err(None),
+        }
+    }
 }
 
 impl<T> Access<T> for Option<T> {
@@ -78,5 +116,15 @@ impl<T> Access<T> for Option<T> {
     #[inline]
     fn into_option(self) -> Option<T> {
         self
+    }
+
+    #[inline]
+    fn from_value(value: T) -> (Self, Self::RemainderFrom<T>) {
+        (Some(value), PhantomData)
+    }
+
+    #[inline]
+    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
+        Ok((value, PhantomData))
     }
 }
