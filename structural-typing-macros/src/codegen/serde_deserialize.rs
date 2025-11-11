@@ -2,6 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Attribute, Ident};
 
+use crate::codegen::generics_utils::impl_generics_with_f;
 use crate::parsing::StructInfo;
 
 pub fn generate(info: &StructInfo) -> syn::Result<(Option<TokenStream>, Option<TokenStream>)> {
@@ -97,6 +98,10 @@ fn validate_serde_attributes(info: &StructInfo) -> syn::Result<()> {
 
 fn generate_helper_struct(info: &StructInfo) -> TokenStream {
     let helper_name = helper_struct_name(&info.name);
+
+    let params = &info.generics.params;
+    let where_clause = &info.generics.where_clause;
+
     let fields = info.fields.iter().map(|field| {
         let name = &field.name;
         let ty = &field.ty;
@@ -111,11 +116,16 @@ fn generate_helper_struct(info: &StructInfo) -> TokenStream {
 
     let preserved_struct_attrs = filter_container_serde_attrs(&info.other_attrs);
 
+    let field_types: Vec<_> = info.fields.iter().map(|field| {
+        let ty = &field.ty;
+        quote! { Option<#ty> }
+    }).collect();
+
     quote! {
-        #[derive(::serde::Deserialize)]
+        #[::derive_where::derive_where(Deserialize; #(#field_types),*)]
         #[doc(hidden)]
         #(#preserved_struct_attrs)*
-        pub(super) struct #helper_name {
+        pub(super) struct #helper_name<#params> #where_clause {
             #(#fields),*
         }
     }
@@ -125,6 +135,10 @@ fn generate_try_from_impl(info: &StructInfo) -> syn::Result<TokenStream> {
     let name = &info.name;
     let module_name = &info.module_name;
     let helper_name = helper_struct_name(&info.name);
+
+    let (impl_generics, user_type_args) = impl_generics_with_f(&info.generics, module_name);
+    let (impl_generics, _, where_clause) = impl_generics.split_for_impl();
+    let (_, user_ty_generics, _) = info.generics.split_for_impl();
 
     let field_conversions = info.fields.iter().map(|field| {
         let field_name = &field.name;
@@ -147,13 +161,14 @@ fn generate_try_from_impl(info: &StructInfo) -> syn::Result<TokenStream> {
     });
 
     Ok(quote! {
-        impl<F: #module_name::Fields> ::core::convert::TryFrom<#module_name::#helper_name> for #name<F>
+        impl #impl_generics ::core::convert::TryFrom<#module_name::#helper_name #user_ty_generics> for #name<#(#user_type_args,)* F>
+        #where_clause
         where
             #(#where_bounds),*
         {
             type Error = String;
 
-            fn try_from(value: #module_name::#helper_name) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: #module_name::#helper_name #user_ty_generics) -> ::core::result::Result<Self, Self::Error> {
                 use ::structural_typing::extract::TryExtract;
 
                 let missing_field = |field: &'static str| -> String {
@@ -175,10 +190,21 @@ fn helper_struct_name(struct_name: &Ident) -> Ident {
     )
 }
 
-pub fn helper_path(module_name: &Ident, struct_name: &Ident) -> String {
-    format!("{}::{}",
-        module_name,
-        helper_struct_name(struct_name))
+pub fn helper_path(module_name: &Ident, struct_name: &Ident, generics: &syn::Generics) -> String {
+    let helper_name = helper_struct_name(struct_name);
+
+    if generics.params.is_empty() {
+        format!("{}::{}", module_name, helper_name)
+    } else {
+        let params: Vec<String> = generics.params.iter().map(|param| {
+            match param {
+                syn::GenericParam::Type(type_param) => type_param.ident.to_string(),
+                syn::GenericParam::Lifetime(lifetime_param) => lifetime_param.lifetime.to_string(),
+                syn::GenericParam::Const(const_param) => const_param.ident.to_string(),
+            }
+        }).collect();
+        format!("{}::{}<{}>", module_name, helper_name, params.join(", "))
+    }
 }
 
 fn filter_deserialize_attrs(attrs: &[Attribute]) -> Vec<Attribute> {

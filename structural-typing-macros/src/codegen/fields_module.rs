@@ -191,6 +191,23 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
     let remainder_fields = generate_remainder_fields(&field_names, &field_types);
     let with_modules = generate_with_modules(&field_names);
 
+    let remainder_params = if info.generics.params.is_empty() {
+        quote! { F1, F2 }
+    } else {
+        let (lifetimes, others): (Vec<_>, Vec<_>) = info.generics.params
+            .iter()
+            .partition(|p| matches!(p, syn::GenericParam::Lifetime(_)));
+        quote! { #(#lifetimes,)* F1, F2, #(#others),* }
+    };
+
+    let remainder_type = quote! {
+        /// Remainder after extracting F2 from F1.
+        #[allow(type_alias_bounds)]
+        pub type Remainder<#remainder_params> = FieldSet<
+            #(#remainder_fields),*
+        >;
+    };
+
     quote! {
         #vis mod #module_name {
             use super::*;
@@ -228,10 +245,7 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
                 #(#merge_fields),*
             >;
 
-            /// Remainder after extracting F2 from F1.
-            pub type Remainder<F1, F2> = FieldSet<
-                #(#remainder_fields),*
-            >;
+            #remainder_type
 
             #with_modules
         }

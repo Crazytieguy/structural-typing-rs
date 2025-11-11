@@ -1,6 +1,6 @@
 use heck::ToSnakeCase;
 use proc_macro2::Span;
-use syn::{Attribute, Data, DeriveInput, Fields, Ident, Type, Visibility, spanned::Spanned};
+use syn::{Attribute, Data, DeriveInput, Fields, Generics, Ident, Type, Visibility, spanned::Spanned};
 
 #[derive(Debug)]
 pub struct StructInfo {
@@ -10,6 +10,7 @@ pub struct StructInfo {
     pub fields: Vec<FieldInfo>,
     pub derives: Vec<Ident>,
     pub other_attrs: Vec<Attribute>,
+    pub generics: Generics,
 }
 
 #[derive(Debug, Clone)]
@@ -23,13 +24,6 @@ pub struct FieldInfo {
 pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
     let name = input.ident.clone();
     let span = input.span();
-
-    if !input.generics.params.is_empty() {
-        return Err(syn::Error::new(
-            input.generics.span(),
-            "structural typing does not support generic structs yet",
-        ));
-    }
 
     let Data::Struct(data_struct) = input.data else {
         return Err(syn::Error::new(
@@ -80,6 +74,7 @@ pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
         fields,
         derives,
         other_attrs,
+        generics: input.generics,
     })
 }
 

@@ -62,12 +62,12 @@ See [examples/](examples/) for comprehensive usage including merge, extract, ser
 - Builder API with type inference
 - Merge and extract operations
 - Serde support (via `serde` feature)
+- Generic type parameters and nested structural types
 - Zero runtime overhead
 
 ## Constraints
 
 - Named structs only (not tuple structs or enums)
-- No generic parameters
 - At least one field required
 
 ## License

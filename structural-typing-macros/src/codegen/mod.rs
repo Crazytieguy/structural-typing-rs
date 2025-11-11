@@ -1,6 +1,7 @@
 mod builders;
 mod constructors;
 mod fields_module;
+mod generics_utils;
 mod getters;
 mod merge;
 mod extract;

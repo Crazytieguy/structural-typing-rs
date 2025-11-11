@@ -246,6 +246,19 @@ fn roundtrip_partial_struct() {
 }
 
 #[test]
+fn deserialize_only_no_other_derives() {
+    #[structural]
+    #[derive(Deserialize)]
+    struct DeserializeOnly {
+        value: String,
+    }
+
+    let json = r#"{"value":"test"}"#;
+    let result: DeserializeOnly = serde_json::from_str(json).unwrap();
+    assert_eq!(result.value, "test");
+}
+
+#[test]
 fn roundtrip_optional_fields() {
     let with_email = TestUser::empty()
         .name("Charlie".to_owned())
@@ -295,9 +308,9 @@ struct Address {
 
 #[structural]
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct UserWithAddress {
+struct UserWithAddress<A: address::Fields> {
     name: String,
-    address: Address,
+    address: Address<A>,
 }
 
 #[test]
@@ -309,9 +322,100 @@ fn nested_structural_types() {
             .country("USA".to_owned()));
 
     let json = serde_json::to_string(&user).unwrap();
-    let deserialized: UserWithAddress = serde_json::from_str(&json).unwrap();
+    let deserialized: UserWithAddress<address::with::all::Present> = serde_json::from_str(&json).unwrap();
 
     assert_eq!(deserialized.name, "Alice");
     assert_eq!(deserialized.address.city, "Seattle");
     assert_eq!(deserialized.address.country, "USA");
+}
+
+#[test]
+fn nested_with_partial_address_city_only() {
+    type AddressCityOnly = select!(address: city);
+    let user = UserWithAddress::empty()
+        .name("Bob".to_owned())
+        .address(Address::empty().city("London".to_owned()));
+
+    let json = serde_json::to_string(&user).unwrap();
+    let deserialized: UserWithAddress<AddressCityOnly> = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(deserialized.name, "Bob");
+    assert_eq!(deserialized.address.city, "London");
+}
+
+#[test]
+fn nested_with_optional_address_fields() {
+    type AddressOptional = select!(address: city, ?country);
+    let user_with_country = UserWithAddress::empty()
+        .name("Charlie".to_owned())
+        .address(Address::empty()
+            .city("Paris".to_owned())
+            .country(Some("France".to_owned())));
+
+    let json = serde_json::to_string(&user_with_country).unwrap();
+    let deserialized: UserWithAddress<AddressOptional> = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(deserialized.name, "Charlie");
+    assert_eq!(deserialized.address.city, "Paris");
+    assert_eq!(deserialized.address.country, Some("France".to_owned()));
+
+    let user_without_country = UserWithAddress::empty()
+        .name("Dave".to_owned())
+        .address(Address::empty()
+            .city("Berlin".to_owned())
+            .country(None));
+
+    let json = serde_json::to_string(&user_without_country).unwrap();
+    let deserialized: UserWithAddress<AddressOptional> = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(deserialized.name, "Dave");
+    assert_eq!(deserialized.address.city, "Berlin");
+    assert_eq!(deserialized.address.country, None);
+}
+
+#[test]
+fn nested_with_absent_user_fields() {
+    type UserNameOnly = select!(user_with_address: name);
+    let user: UserWithAddress<address::with::all::Present, UserNameOnly> = UserWithAddress::empty()
+        .name("Eve".to_owned());
+
+    let json = serde_json::to_string(&user).unwrap();
+    assert!(json.contains(r#""name":"Eve"#));
+    assert!(!json.contains("address"));
+}
+
+#[test]
+fn nested_merge_addresses() {
+    let city_part = Address::empty().city("Tokyo".to_owned());
+    let country_part = Address::empty().country("Japan".to_owned());
+
+    let merged = city_part.merge(country_part);
+
+    let user = UserWithAddress::empty()
+        .name("Frank".to_owned())
+        .address(merged);
+
+    assert_eq!(user.name, "Frank");
+    assert_eq!(user.address.city, "Tokyo");
+    assert_eq!(user.address.country, "Japan");
+}
+
+#[test]
+fn nested_extract_address_fields() {
+    let full_address = Address::empty()
+        .city("Rome".to_owned())
+        .country("Italy".to_owned());
+
+    type AddressCityOnly = select!(address: city);
+    let (city_only, remainder): (Address<AddressCityOnly>, _) = full_address.extract();
+
+    assert_eq!(city_only.city, "Rome");
+    assert_eq!(remainder.country, "Italy");
+
+    let user_with_city = UserWithAddress::empty()
+        .name("Grace".to_owned())
+        .address(city_only);
+
+    assert_eq!(user_with_city.name, "Grace");
+    assert_eq!(user_with_city.address.city, "Rome");
 }

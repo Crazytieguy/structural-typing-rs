@@ -10,10 +10,17 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     let module_name = &info.module_name;
     let other_attrs = &info.other_attrs;
 
+    let mut combined_generics = info.generics.clone();
+    let f_param: syn::GenericParam = syn::parse_quote!(F: #module_name::Fields = #module_name::with::all::Present);
+    combined_generics.params.push(f_param);
+
+    let params = &combined_generics.params;
+    let where_clause = &combined_generics.where_clause;
+
     let has_serialize = info.derives.iter().any(|d| d == "Serialize");
     let has_deserialize = info.derives.iter().any(|d| d == "Deserialize");
 
-    let helper_path_str = helper_path(module_name, struct_name);
+    let helper_path_str = helper_path(module_name, struct_name, &info.generics);
     let try_from_attr = if has_deserialize {
         quote! { #[serde(try_from = #helper_path_str)] }
     } else {
@@ -39,6 +46,16 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         }
     }).collect();
 
+    // Separate Deserialize from other derives - it doesn't need bounds with try_from
+    let derives_to_use: Vec<_> = if has_deserialize {
+        info.derives
+            .iter()
+            .filter(|d| *d != "Deserialize")
+            .collect()
+    } else {
+        info.derives.iter().collect()
+    };
+
     let derive_bounds: Vec<_> = info
         .fields
         .iter()
@@ -51,15 +68,6 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         })
         .collect();
 
-    let derives_to_use: Vec<_> = if has_deserialize {
-        info.derives
-            .iter()
-            .filter(|d| *d != "Deserialize")
-            .collect()
-    } else {
-        info.derives.iter().collect()
-    };
-
     let derive_clause = if derives_to_use.is_empty() {
         quote! {}
     } else {
@@ -68,20 +76,30 @@ pub fn generate(info: &StructInfo) -> TokenStream {
         }
     };
 
+    // Deserialize uses separate derive_where without bounds
+    // If it's the only derive, it needs the :: path qualification
     let deserialize_derive = if has_deserialize {
-        quote! {
-            #[derive(::serde::Deserialize)]
+        if derives_to_use.is_empty() {
+            quote! {
+                #[::derive_where::derive_where(Deserialize)]
+            }
+        } else {
+            quote! {
+                #[derive_where(Deserialize)]
+            }
         }
     } else {
         quote! {}
     };
+
+    let params_iter = params.iter();
 
     quote! {
         #derive_clause
         #deserialize_derive
         #try_from_attr
         #(#other_attrs)*
-        #struct_vis struct #struct_name<F: #module_name::Fields = #module_name::with::all::Present> {
+        #struct_vis struct #struct_name<#(#params_iter),*> #where_clause {
             #(#field_defs),*
         }
     }

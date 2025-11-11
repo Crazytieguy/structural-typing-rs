@@ -51,7 +51,6 @@
 //! ## Constraints
 //!
 //! - Named structs only (not tuple structs or enums)
-//! - No generic parameters
 //! - At least one field required
 
 #![deny(missing_docs)]

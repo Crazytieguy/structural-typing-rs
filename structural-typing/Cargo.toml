@@ -25,34 +25,38 @@ default = []
 
 # Examples in ../examples/ (repo root)
 [[example]]
-name = "01_hello"
-path = "../examples/01_hello.rs"
+name = "hello"
+path = "../examples/hello.rs"
 
 [[example]]
-name = "02_optional"
-path = "../examples/02_optional.rs"
+name = "optional"
+path = "../examples/optional.rs"
 
 [[example]]
-name = "03_generics"
-path = "../examples/03_generics.rs"
+name = "generic_impl"
+path = "../examples/generic_impl.rs"
 
 [[example]]
-name = "04_merge"
-path = "../examples/04_merge.rs"
+name = "merge"
+path = "../examples/merge.rs"
 
 [[example]]
-name = "05_extract"
-path = "../examples/05_extract.rs"
+name = "extract"
+path = "../examples/extract.rs"
 
 [[example]]
-name = "06_try_extract"
-path = "../examples/06_try_extract.rs"
+name = "try_extract"
+path = "../examples/try_extract.rs"
 
 [[example]]
-name = "07_derives"
-path = "../examples/07_derives.rs"
+name = "derives"
+path = "../examples/derives.rs"
 
 [[example]]
-name = "08_serde"
-path = "../examples/08_serde.rs"
+name = "serde"
+path = "../examples/serde.rs"
 required-features = ["serde"]
+
+[[example]]
+name = "nested"
+path = "../examples/nested.rs"

@@ -23,6 +23,8 @@ mod parsing;
 /// - Getter methods: `.get_field()`, `.get_field_mut()`
 /// - `.merge()`, `.extract()`, `.try_extract()` operations
 ///
+/// Supports user-defined generic type parameters and nested structural types (see `examples/nested.rs`).
+///
 /// # Field States
 ///
 /// - **Present**: Value of type `T`
@@ -73,7 +75,6 @@ mod parsing;
 /// # Restrictions
 ///
 /// - Named structs only
-/// - No generics
 /// - At least one field
 #[proc_macro_attribute]
 pub fn structural(_attr: TokenStream, item: TokenStream) -> TokenStream {
