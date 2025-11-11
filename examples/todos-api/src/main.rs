@@ -36,13 +36,18 @@ async fn create_todo(
     Ok((StatusCode::CREATED, Json(todo)))
 }
 
-async fn list_todos(State(pool): State<SqlitePool>) -> Result<Json<Vec<Todo>>, StatusCode> {
+#[derive(Serialize)]
+struct ListTodos {
+    todos: Vec<Todo>
+}
+
+async fn list_todos(State(pool): State<SqlitePool>) -> Result<Json<ListTodos>, StatusCode> {
     let todos = sqlx::query_as!(Todo, "SELECT id, title, completed FROM todos")
         .fetch_all(&pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(todos))
+    Ok(Json( ListTodos { todos } ))
 }
 
 async fn get_todo(
