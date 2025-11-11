@@ -3,12 +3,12 @@ members = ["structural-typing", "structural-typing-macros"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Crazytieguy/structural-typing-rs"
 rust-version = "1.85"
 
 [workspace.dependencies]
-structural-typing = { path = "structural-typing", version = "0.1.5" }
-structural-typing-macros = { path = "structural-typing-macros", version = "0.1.5" }
+structural-typing = { path = "structural-typing", version = "0.1.6" }
+structural-typing-macros = { path = "structural-typing-macros", version = "0.1.6" }
