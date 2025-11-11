@@ -1,57 +1,232 @@
 //! # Structural Typing for Rust
 //!
-//! Define a struct once and use it with different field combinations, tracked at compile time.
+//! Structural typing separates schemas (what fields can exist) from selections (what fields must be
+//! present). Optionality is context-dependent—a name is always a string, but different contexts may
+//! or may not require it. Instead of creating separate types for each context (`CreateUser`,
+//! `UpdateUser`, `DBUser`...) or using `Option<T>` everywhere, define your schema once and use
+//! generic trait bounds for context-specific requirements—all verified at compile time.
+//!
+//! This design is inspired by Rich Hickey's [`Maybe Not`](https://www.youtube.com/watch?v=YR5WdGrpoug)
+//! talk, which articulates the principle of separating attribute definitions from their use in aggregates,
+//! along with ideas from TypeScript's structural types and RDF's independent attributes.
 //!
 //! ## Installation
 //!
-//! ```bash
-//! cargo add structural-typing
+//! ```toml
+//! [dependencies]
+//! structural-typing = "0.1.6"
+//! derive-where = "1.6"  # For deriving traits on structural types
 //! ```
 //!
-//! If using derives on `#[structural]` structs, also add:
-//! ```bash
-//! cargo add derive-where
-//! ```
+//! ## Usage
 //!
-//! ## Quick Example
+//! ### Define the schema
 //!
 //! ```
-//! use structural_typing::{structural, presence::Present, select};
+//! use structural_typing::structural;
 //!
 //! #[structural]
-//! struct User { id: u32, name: String, email: String }
-//!
-//! type Create = select!(user: name, email);
-//!
-//! fn create_user(data: User<Create>) -> User {
-//!     data.id(generate_id())
+//! struct User {
+//!     id: u32,
+//!     name: String,
+//!     email: String,
 //! }
-//!
-//! fn update_user<F: user::Fields<id = Present>>(data: User<F>) {
-//!     if let Some(name) = data.get_name() {
-//!         update_in_db(data.id, name);
-//!     }
-//! }
-//! # fn generate_id() -> u32 { 42 }
-//! # fn update_in_db(_id: u32, _name: &String) {}
 //! ```
 //!
-//! ## Core Concepts
+//! The `#[structural]` macro generates a module named `user` containing a `Fields` trait with
+//! associated types for each field. This enables compile-time tracking of which fields are present.
 //!
-//! - **Field States**: `Present`, `Optional`, `Absent`
-//! - **Builder API**: `.field(value)` infers presence from type
-//! - **Type Selection**: `select!` macro or type aliases
-//! - **Bounded Impls**: Require specific fields via trait bounds
-//! - **Merge and Extract**: Combine partial structs or extract field subsets
+//! ### Generic functions with field requirements
 //!
-//! For serde integration and other details, see the [`structural`] macro documentation.
+//! Functions can require specific fields through trait bounds using the generated `Fields` trait.
+//! The `Presence` type can be `Present` (`T`), `Optional` (`Option<T>`), or `Absent` (`PhantomData<T>`):
 //!
-//! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples) directory for comprehensive usage.
+//! ```
+//! # use structural_typing::{structural, presence::Present};
+//! #
+//! # #[structural]
+//! # struct User {
+//! #     id: u32,
+//! #     name: String,
+//! #     email: String,
+//! # }
+//! #
+//! // Requires both id and name
+//! fn display_user<F: user::Fields<id = Present, name = Present>>(user: &User<F>) {
+//!     println!("User #{}: {}", user.id, user.name);
+//! }
+//! ```
 //!
-//! ## Constraints
+//! Relaxing requirements is backward compatible. Existing callers with id and name continue to work
+//! if we remove the `name` requirement—unlike changing a function parameter from `T` to `Option<T>`,
+//! which breaks all existing call sites.
 //!
-//! - Named structs only (not tuple structs or enums)
-//! - At least one field required
+//! ```
+//! # use structural_typing::{structural, presence::Present};
+//! #
+//! # #[structural]
+//! # struct User {
+//! #     id: u32,
+//! #     name: String,
+//! #     email: String,
+//! # }
+//! #
+//! // Requires only id; adapts behavior based on whether name is present
+//! fn display_user<F: user::Fields<id = Present>>(user: &User<F>) {
+//!     if let Some(name) = user.get_name() {
+//!         println!("User #{}: {}", user.id, name);
+//!     } else {
+//!         println!("User #{}", user.id);
+//!     }
+//! }
+//! ```
+//!
+//! ### Build instances incrementally
+//!
+//! The builder API infers field presence from the value type:
+//!
+//! ```
+//! # use structural_typing::{structural, presence::Present};
+//! #
+//! # #[structural]
+//! # struct User {
+//! #     id: u32,
+//! #     name: String,
+//! #     email: String,
+//! # }
+//! #
+//! # fn display_user<F: user::Fields<id = Present>>(user: &User<F>) {
+//! #     if let Some(name) = user.get_name() {
+//! #         println!("User #{}: {}", user.id, name);
+//! #     } else {
+//! #         println!("User #{}", user.id);
+//! #     }
+//! # }
+//! #
+//! let bob = User::empty().id(123);
+//! display_user(&bob);
+//!
+//! let bob = bob.name("Bob".to_owned());
+//! ```
+//!
+//! ### Serde integration
+//!
+//! The `select!` macro creates concrete types, useful for serialization boundaries:
+//!
+//! ```ignore
+//! use serde::{Deserialize, Serialize};
+//!
+//! #[structural]
+//! #[derive(Serialize, Deserialize)]
+//! struct User {
+//!     id: u32,
+//!     name: String,
+//!     email: String,
+//! }
+//!
+//! let json = r#"{"name": "Alice", "email": "alice@example.com"}"#;
+//! // name optional, email present, id absent
+//! let alice: User<select!(user: ?name, email)> = serde_json::from_str(json)?;
+//!
+//! let response = alice.id(42);
+//! let json = serde_json::to_string(&response)?;
+//! // => {"id":42, "name": "Alice", "email": "alice@example.com"}
+//! ```
+//!
+//! ### Extract and merge
+//!
+//! ```
+//! # use structural_typing::{structural, select};
+//! #
+//! # #[structural]
+//! # struct User {
+//! #     id: u32,
+//! #     name: String,
+//! #     email: String,
+//! # }
+//! #
+//! # let alice = User::empty()
+//! #     .id(42)
+//! #     .name("Alice".to_owned())
+//! #     .email("alice@example.com".to_owned());
+//! #
+//! // Extract name and email, get back credentials and remainder with just id
+//! let (credentials, id_only) = alice.extract::<select!(user: name, email)>();
+//! assert_eq!(credentials.name, "Alice");
+//! assert_eq!(id_only.id, 42);
+//! ```
+//!
+//! Merge instances:
+//!
+//! ```
+//! # use structural_typing::structural;
+//! #
+//! # #[structural]
+//! # struct User {
+//! #     id: u32,
+//! #     name: String,
+//! #     email: String,
+//! # }
+//! #
+//! # let credentials = User::empty()
+//! #     .name("Alice".to_owned())
+//! #     .email("alice@example.com".to_owned());
+//! # let id_only = User::empty().id(42);
+//! #
+//! let alice = credentials.merge(id_only);
+//! // merged values override existing values
+//! let overridden = alice.merge(User::empty().id(21));
+//! assert_eq!(overridden.name, "Alice");
+//! assert_eq!(overridden.id, 21);
+//! ```
+//!
+//! ### Nested schemas
+//!
+//! Schemas can contain other structural types:
+//!
+//! ```ignore
+//! use structural_typing::{structural, presence::Present};
+//!
+//! #[structural]
+//! struct Address {
+//!     street: String,
+//!     city: String,
+//!     zip: String,
+//! }
+//!
+//! #[structural]
+//! struct User<A: address::Fields> {
+//!     id: u32,
+//!     name: String,
+//!     address: Address<A>,
+//! }
+//!
+//! // Require specific nested fields
+//! fn ship<A, F>(user: User<A, F>)
+//! where
+//!     A: address::Fields<street = Present, city = Present>,
+//!     F: user::Fields<id = Present, address = Present>
+//! {
+//!     println!("Shipping to {} at: {}, {}",
+//!         user.id, user.address.street, user.address.city);
+//! }
+//! ```
+//!
+//! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples)
+//! directory for more comprehensive usage.
+//!
+//! ## Design
+//!
+//! The `#[structural]` macro generates a module containing a `Fields` trait with associated types
+//! for each field. Field presence is tracked through type-level markers (`Present`, `Optional`,
+//! `Absent`) that implement the `Presence` trait. Functions express requirements through trait bounds,
+//! and the builder API uses type inference to determine field states.
+//!
+//! This approach enables:
+//! - **Compile-time verification**: All field requirements checked during compilation
+//! - **Zero runtime overhead**: No dynamic checks or boxing
+//! - **API evolution**: Relaxing requirements is backward compatible
+//! - **Flexible composition**: Merge, extract, and transform with compile-time guarantees
 
 #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
