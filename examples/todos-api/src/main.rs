@@ -26,7 +26,7 @@ async fn create_todo(
 ) -> Result<(StatusCode, Json<Todo>), StatusCode> {
     let todo = sqlx::query_as!(
         Todo,
-        "INSERT INTO todos (title, completed) VALUES (?, false) RETURNING id, title, completed",
+        "INSERT INTO todos (title) VALUES (?) RETURNING *",
         payload.title
     )
     .fetch_one(&pool)
@@ -42,7 +42,7 @@ struct ListTodos {
 }
 
 async fn list_todos(State(pool): State<SqlitePool>) -> Result<Json<ListTodos>, StatusCode> {
-    let todos = sqlx::query_as!(Todo, "SELECT id, title, completed FROM todos")
+    let todos = sqlx::query_as!(Todo, "SELECT * FROM todos")
         .fetch_all(&pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -56,7 +56,7 @@ async fn get_todo(
 ) -> Result<Json<Todo>, StatusCode> {
     let todo = sqlx::query_as!(
         Todo,
-        "SELECT id, title, completed FROM todos WHERE id = ?",
+        "SELECT * FROM todos WHERE id = ?",
         id
     )
     .fetch_one(&pool)
@@ -77,7 +77,7 @@ async fn update_todo(
          SET title = COALESCE(?, title),
              completed = COALESCE(?, completed)
          WHERE id = ?
-         RETURNING id, title, completed",
+         RETURNING *",
         payload.title,
         payload.completed,
         id
