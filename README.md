@@ -72,6 +72,8 @@ let bob = bob.name("Bob".to_owned());
 
 ### Serde integration
 
+Enable the `serde` feature to use structural types with serde.
+
 The `select!` macro creates concrete types, useful for serialization boundaries:
 
 ```rust

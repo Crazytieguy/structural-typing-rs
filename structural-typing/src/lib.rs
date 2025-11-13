@@ -111,6 +111,8 @@
 //!
 //! ### Serde integration
 //!
+//! Enable the `serde` feature to use structural types with serde.
+//!
 //! The `select!` macro creates concrete types, useful for serialization boundaries:
 //!
 //! ```ignore
