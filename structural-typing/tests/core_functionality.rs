@@ -46,9 +46,9 @@ fn select_optional() {
 #[test]
 fn select_empty_all_absent() {
     let val = TestStruct::empty();
-    assert!(val.get_name().is_none());
-    assert!(val.get_email().is_none());
-    assert!(val.get_id().is_none());
+    assert_eq!(val.name, PhantomData);
+    assert_eq!(val.email, PhantomData);
+    assert_eq!(val.id, PhantomData);
 }
 
 #[test]
@@ -78,8 +78,8 @@ fn modify_remove_fields() {
     type OnlyName = select!(test_struct: name);
     let val: TestStruct<OnlyName> = TestStruct::empty().name("Eve".to_owned());
     assert_eq!(val.name, "Eve");
-    assert!(val.get_email().is_none());
-    assert!(val.get_id().is_none());
+    assert_eq!(val.email, PhantomData);
+    assert_eq!(val.id, PhantomData);
 }
 
 #[test]
@@ -114,11 +114,11 @@ fn split_with_select() {
     let (selected, remainder) = full.extract::<select!(test_struct: name, id)>();
     assert_eq!(selected.name, "Charlie");
     assert_eq!(selected.id, 789);
-    assert!(selected.get_email().is_none());
+    assert_eq!(selected.email, PhantomData);
 
     assert_eq!(remainder.email, "charlie@test.com");
-    assert!(remainder.get_name().is_none());
-    assert!(remainder.get_id().is_none());
+    assert_eq!(remainder.name, PhantomData);
+    assert_eq!(remainder.id, PhantomData);
 }
 
 #[test]
@@ -198,7 +198,7 @@ fn try_extract_without_clone() {
     match ncs2.try_extract::<select!(no_clone: value)>() {
         Ok(_) => panic!("Expected error when Optional is None"),
         Err(returned) => {
-            assert_eq!(returned.get_value(), None);
+            assert_eq!(returned.value, None);
             assert_eq!(returned.id, 99);
         }
     }
@@ -276,14 +276,12 @@ fn bounded_impl_with_modify() {
 }
 
 #[test]
-fn get_field_mut() {
+fn direct_field_mutation() {
     // Direct type alias (not select!)
     type NameOnly = test_struct::with::name;
     let mut val: TestStruct<NameOnly> = TestStruct::empty().name("Test".to_owned());
 
-    if let Some(name) = val.get_name_mut() {
-        *name = "Modified".to_owned();
-    }
+    val.name = "Modified".to_owned();
     assert_eq!(val.name, "Modified");
 }
 
@@ -291,7 +289,7 @@ fn get_field_mut() {
 fn unset_field() {
     let full = TestStruct::empty().name("Test".to_owned());
     let val = full.name(PhantomData);
-    assert!(val.get_name().is_none());
+    assert_eq!(val.name, PhantomData);
 }
 
 #[test]
@@ -383,16 +381,16 @@ impl<F: test_struct::Fields<name = Present, email = Present>> TestStruct<F> {
 fn select_absent_field() {
     type NameAbsent = select!(test_struct: name-);
     let val: TestStruct<NameAbsent> = TestStruct::empty();
-    assert!(val.get_name().is_none());
+    assert_eq!(val.name, PhantomData);
 }
 
 #[test]
 fn select_all_absent() {
     type AllAbsent = select!(test_struct: all-);
     let val: TestStruct<AllAbsent> = TestStruct::empty();
-    assert!(val.get_name().is_none());
-    assert!(val.get_email().is_none());
-    assert!(val.get_id().is_none());
+    assert_eq!(val.name, PhantomData);
+    assert_eq!(val.email, PhantomData);
+    assert_eq!(val.id, PhantomData);
 }
 
 #[test]
@@ -434,5 +432,5 @@ fn select_mixed_presence() {
         .email(Some("charlie@example.com".to_owned()));
     assert_eq!(val.name, "Charlie");
     assert_eq!(val.email, Some("charlie@example.com".to_owned()));
-    assert!(val.get_id().is_none());
+    assert_eq!(val.id, PhantomData);
 }

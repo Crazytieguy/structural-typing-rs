@@ -62,7 +62,7 @@
 //! which breaks all existing call sites.
 //!
 //! ```
-//! # use structural_typing::{structural, presence::Present};
+//! # use structural_typing::{structural, presence::Present, access::Access};
 //! #
 //! # #[structural]
 //! # struct User {
@@ -73,7 +73,7 @@
 //! #
 //! // Requires only id; adapts behavior based on whether name is present
 //! fn display_user<F: user::Fields<id = Present>>(user: &User<F>) {
-//!     if let Some(name) = user.get_name() {
+//!     if let Some(name) = user.name.get() {
 //!         println!("User #{}: {}", user.id, name);
 //!     } else {
 //!         println!("User #{}", user.id);
@@ -86,7 +86,7 @@
 //! The builder API infers field presence from the value type:
 //!
 //! ```
-//! # use structural_typing::{structural, presence::Present};
+//! # use structural_typing::{structural, presence::Present, access::Access};
 //! #
 //! # #[structural]
 //! # struct User {
@@ -96,7 +96,7 @@
 //! # }
 //! #
 //! # fn display_user<F: user::Fields<id = Present>>(user: &User<F>) {
-//! #     if let Some(name) = user.get_name() {
+//! #     if let Some(name) = user.name.get() {
 //! #         println!("User #{}: {}", user.id, name);
 //! #     } else {
 //! #         println!("User #{}", user.id);

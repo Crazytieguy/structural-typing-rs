@@ -3,7 +3,6 @@ mod constructors;
 mod extract;
 mod fields_module;
 mod generics_utils;
-mod getters;
 mod merge;
 mod serde_deserialize;
 mod struct_def;
@@ -22,7 +21,6 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
     let struct_def = struct_def::generate(&info);
     let constructors = constructors::generate(&info);
     let builders = builders::generate(&info);
-    let getters = getters::generate(&info);
     let merge = merge::generate(&info);
     let extract = extract::generate(&info);
 
@@ -36,8 +34,6 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
         #constructors
 
         #builders
-
-        #getters
 
         #merge
 

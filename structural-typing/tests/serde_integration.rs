@@ -1,5 +1,6 @@
 #![cfg(feature = "serde")]
 
+use core::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 use structural_typing::{select, structural};
 
@@ -425,5 +426,5 @@ fn serde_with_absent_field() {
     let user: TestUser<select!(test_user: name, id, email-)> = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Bob");
     assert_eq!(user.id, 123);
-    assert!(user.get_email().is_none());
+    assert_eq!(user.email, PhantomData);
 }

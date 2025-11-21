@@ -20,7 +20,6 @@ mod parsing;
 ///
 /// - A `my_struct` module with `Fields` trait, `FieldSet<...>` type, and `with::` aliases
 /// - Builder methods: `.field(value)`
-/// - Getter methods: `.get_field()`, `.get_field_mut()`
 /// - `.merge()`, `.extract()`, `.try_extract()` operations
 ///
 /// Supports user-defined generic type parameters and nested structural types (see `examples/nested.rs`).

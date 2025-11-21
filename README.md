@@ -49,9 +49,11 @@ fn display_user<F: user::Fields<id = Present, name = Present>>(user: &User<F>) {
 Relaxing requirements is backward compatible. Existing callers with id and name continue to work if we remove the `name` requirement—unlike changing a function parameter from `T` to `Option<T>`, which breaks all existing call sites.
 
 ```rust
+use structural_typing::access::Access;
+
 // Requires only id; adapts behavior based on whether name is present
 fn display_user<F: user::Fields<id = Present>>(user: &User<F>) {
-    if let Some(name) = user.get_name() {
+    if let Some(name) = user.name.get() {
         println!("User #{}: {}", user.id, name);
     } else {
         println!("User #{}", user.id);
