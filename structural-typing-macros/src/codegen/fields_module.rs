@@ -66,47 +66,22 @@ fn generate_remainder_fields(field_names: &[&Ident], field_types: &[&Type]) -> V
 fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
     let has_multiple_fields = field_names.len() > 1;
 
-    // Generate the default type for F parameter (all fields Absent)
     let all_absent_default: Vec<_> = std::iter::repeat_n(
         quote! { ::structural_typing::presence::Absent },
         field_names.len(),
     )
     .collect();
 
-    let field_modules: Vec<_> = field_names
+    let field_type_aliases: Vec<_> = field_names
         .iter()
         .enumerate()
         .map(|(current_idx, field_name)| {
-            let present_types: Vec<_> = field_names
+            let field_types: Vec<_> = field_names
                 .iter()
                 .enumerate()
                 .map(|(idx, name)| {
                     if idx == current_idx {
-                        quote! { ::structural_typing::presence::Present }
-                    } else {
-                        quote! { F::#name }
-                    }
-                })
-                .collect();
-
-            let optional_types: Vec<_> = field_names
-                .iter()
-                .enumerate()
-                .map(|(idx, name)| {
-                    if idx == current_idx {
-                        quote! { ::structural_typing::presence::Optional }
-                    } else {
-                        quote! { F::#name }
-                    }
-                })
-                .collect();
-
-            let absent_types: Vec<_> = field_names
-                .iter()
-                .enumerate()
-                .map(|(idx, name)| {
-                    if idx == current_idx {
-                        quote! { ::structural_typing::presence::Absent }
+                        quote! { P }
                     } else {
                         quote! { F::#name }
                     }
@@ -115,65 +90,35 @@ fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
 
             if has_multiple_fields {
                 quote! {
-                    pub mod #field_name {
-                        use super::*;
-                        /// Field is Present, others as specified by F.
-                        pub type Present<F: Fields = FieldSet<#(#all_absent_default),*>> = FieldSet<#(#present_types),*>;
-                        /// Field is Optional, others as specified by F.
-                        pub type Optional<F: Fields = FieldSet<#(#all_absent_default),*>> = FieldSet<#(#optional_types),*>;
-                        /// Field is Absent, others as specified by F.
-                        pub type Absent<F: Fields = FieldSet<#(#all_absent_default),*>> = FieldSet<#(#absent_types),*>;
-                    }
+                    /// Parameterized field presence type alias.
+                    #[allow(non_camel_case_types)]
+                    pub type #field_name<
+                        P: Presence = ::structural_typing::presence::Present,
+                        F: Fields = FieldSet<#(#all_absent_default),*>
+                    > = FieldSet<#(#field_types),*>;
                 }
             } else {
                 quote! {
-                    pub mod #field_name {
-                        use super::*;
-                        /// Field is Present.
-                        pub type Present = FieldSet<#(#present_types),*>;
-                        /// Field is Optional.
-                        pub type Optional = FieldSet<#(#optional_types),*>;
-                        /// Field is Absent.
-                        pub type Absent = FieldSet<#(#absent_types),*>;
-                    }
+                    /// Parameterized field presence type alias.
+                    #[allow(non_camel_case_types)]
+                    pub type #field_name<P: Presence = ::structural_typing::presence::Present> = FieldSet<P>;
                 }
             }
         })
         .collect();
 
-    let all_present: Vec<_> = std::iter::repeat_n(
-        quote! { ::structural_typing::presence::Present },
-        field_names.len(),
-    )
-    .collect();
-    let all_optional: Vec<_> = std::iter::repeat_n(
-        quote! { ::structural_typing::presence::Optional },
-        field_names.len(),
-    )
-    .collect();
-    let all_absent: Vec<_> = std::iter::repeat_n(
-        quote! { ::structural_typing::presence::Absent },
-        field_names.len(),
-    )
-    .collect();
+    let all_fields: Vec<_> = std::iter::repeat_n(quote! { P }, field_names.len()).collect();
 
     quote! {
         /// Type aliases for field presence combinations.
         pub mod with {
             use super::*;
 
-            #(#field_modules)*
+            #(#field_type_aliases)*
 
-            /// Type aliases for all fields with the same presence state.
-            pub mod all {
-                use super::*;
-                /// All fields are Present.
-                pub type Present = FieldSet<#(#all_present),*>;
-                /// All fields are Optional.
-                pub type Optional = FieldSet<#(#all_optional),*>;
-                /// All fields are Absent (empty struct).
-                pub type Absent = FieldSet<#(#all_absent),*>;
-            }
+            /// All fields with the same presence state.
+            #[allow(non_camel_case_types)]
+            pub type all<P: Presence = ::structural_typing::presence::Present> = FieldSet<#(#all_fields),*>;
         }
     }
 }

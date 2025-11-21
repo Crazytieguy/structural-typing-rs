@@ -1,4 +1,4 @@
-error: Invalid prefix '+' in select!. Use 'field' for Present or '?field' for Optional
+error: Invalid prefix '+' in select!. Use 'field' for Present, '?field' for Optional, '-field' for Absent, or '<Type>field' for custom presence
  --> tests/ui/select_invalid_prefix_plus.rs:9:20
   |
 9 |     type Invalid = select!(user: +name);

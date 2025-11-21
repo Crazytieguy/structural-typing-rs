@@ -67,7 +67,7 @@ fn single_field_struct() {
     let val: SingleField<DataPresent> = SingleField::empty().data("test".to_owned());
     assert_eq!(val.data, "test");
 
-    type DataOptional = select!(single_field: ?data);
+    type DataOptional = select!(single_field: data?);
     let val2: SingleField<DataOptional> = SingleField::empty().data(Some("test".to_owned()));
     assert_eq!(val2.data, Some("test".to_owned()));
 

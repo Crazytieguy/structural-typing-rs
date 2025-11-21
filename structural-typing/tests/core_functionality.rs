@@ -35,7 +35,7 @@ fn select_multiple() {
 
 #[test]
 fn select_optional() {
-    type NameAndMaybeEmail = select!(test_struct: name, ?email);
+    type NameAndMaybeEmail = select!(test_struct: name, email?);
     let val: TestStruct<NameAndMaybeEmail> = TestStruct::empty()
         .name("Charlie".to_owned())
         .email(Some("charlie@test.com".to_owned()));
@@ -53,7 +53,7 @@ fn select_empty_all_absent() {
 
 #[test]
 fn select_all_optional() {
-    type AllOptional = select!(test_struct: ?all);
+    type AllOptional = select!(test_struct: all?);
     let val: TestStruct<AllOptional> = TestStruct::empty()
         .name(Some("Alice".to_owned()))
         .email(None)
@@ -84,7 +84,7 @@ fn modify_remove_fields() {
 
 #[test]
 fn modify_make_optional() {
-    type NameAndMaybeEmail = select!(test_struct: name, ?email);
+    type NameAndMaybeEmail = select!(test_struct: name, email?);
     let val: TestStruct<NameAndMaybeEmail> =
         TestStruct::empty().name("Frank".to_owned()).email(None);
     assert_eq!(val.name, "Frank");
@@ -124,7 +124,7 @@ fn split_with_select() {
 #[test]
 fn try_extract_failure() {
     // Fails when Optional is None but Present required
-    let optional_email: TestStruct<select!(test_struct: name, ?email)> =
+    let optional_email: TestStruct<select!(test_struct: name, email?)> =
         TestStruct::empty().name("Test".to_owned()).email(None);
     let result = optional_email.try_extract::<select!(test_struct: name, email)>();
     assert!(
@@ -136,7 +136,7 @@ fn try_extract_failure() {
 #[test]
 fn try_extract_returns_exact_original() {
     // Returns exact original on failure
-    let original: TestStruct<select!(test_struct: name, ?email, id)> = TestStruct::empty()
+    let original: TestStruct<select!(test_struct: name, email?, id)> = TestStruct::empty()
         .name("Alice".to_owned())
         .email(None)
         .id(123);
@@ -155,7 +155,7 @@ fn try_extract_returns_exact_original() {
 #[test]
 fn try_extract_failure_at_different_positions() {
     // Failure: Optional in middle
-    let partial: TestStruct<select!(test_struct: name, ?email, id)> = TestStruct::empty()
+    let partial: TestStruct<select!(test_struct: name, email?, id)> = TestStruct::empty()
         .name("Bob".to_owned())
         .email(None)
         .id(456);
@@ -167,7 +167,7 @@ fn try_extract_failure_at_different_positions() {
     assert_eq!(result.unwrap_err(), cloned);
 
     // Failure: Optional at end
-    let partial2: TestStruct<select!(test_struct: name, email, ?id)> = TestStruct::empty()
+    let partial2: TestStruct<select!(test_struct: name, email, id?)> = TestStruct::empty()
         .name("Charlie".to_owned())
         .email("charlie@test.com".to_owned())
         .id(None);
@@ -207,7 +207,7 @@ fn try_extract_without_clone() {
 #[test]
 fn try_extract_multiple_optional_fields() {
     // Multiple Optional: only second None
-    let partial: TestStruct<select!(test_struct: ?name, ?email, id)> = TestStruct::empty()
+    let partial: TestStruct<select!(test_struct: name?, email?, id)> = TestStruct::empty()
         .name(Some("Alice".to_owned()))
         .email(None)
         .id(123);
@@ -229,7 +229,7 @@ fn try_extract_success_then_merge_and_reverse_split() {
     let original_cloned = original.clone();
 
     // Convert email: Present → Optional
-    let result = original.try_extract::<select!(test_struct: name, ?email)>();
+    let result = original.try_extract::<select!(test_struct: name, email?)>();
     assert!(result.is_ok());
     let (selected, remainder) = result.unwrap();
 
@@ -278,7 +278,7 @@ fn bounded_impl_with_modify() {
 #[test]
 fn get_field_mut() {
     // Direct type alias (not select!)
-    type NameOnly = test_struct::with::name::Present;
+    type NameOnly = test_struct::with::name;
     let mut val: TestStruct<NameOnly> = TestStruct::empty().name("Test".to_owned());
 
     if let Some(name) = val.get_name_mut() {
@@ -324,15 +324,15 @@ fn select_with_trailing_comma() {
     assert_eq!(val2.name, "Bob");
     assert_eq!(val2.email, "bob@test.com");
 
-    type OptionalName = select!(test_struct: ?name,);
+    type OptionalName = select!(test_struct: name?,);
     let val3: TestStruct<OptionalName> = TestStruct::empty().name(Some("Charlie".to_owned()));
     assert_eq!(val3.name, Some("Charlie".to_owned()));
 }
 
 #[test]
 fn generic_extract_to_absent() {
-    fn remove_email<F: test_struct::Fields>(data: TestStruct<F>) -> TestStruct<test_struct::with::email::Absent<F>> {
-        let (extracted, _) = data.extract::<test_struct::with::email::Absent<F>>();
+    fn remove_email<F: test_struct::Fields>(data: TestStruct<F>) -> TestStruct<test_struct::with::email<::structural_typing::presence::Absent, F>> {
+        let (extracted, _) = data.extract::<test_struct::with::email<::structural_typing::presence::Absent, F>>();
         extracted
     }
 
@@ -350,8 +350,8 @@ fn generic_extract_to_absent() {
 fn generic_extract_to_optional() {
     fn extract_name_as_optional<F: test_struct::Fields>(
         data: TestStruct<F>,
-    ) -> TestStruct<select!(test_struct: ?name)> {
-        let (extracted, _) = data.extract::<select!(test_struct: ?name)>();
+    ) -> TestStruct<select!(test_struct: name?)> {
+        let (extracted, _) = data.extract::<select!(test_struct: name?)>();
         extracted
     }
 
@@ -374,4 +374,64 @@ impl<F: test_struct::Fields<name = Present, email = Present>> TestStruct<F> {
     pub fn email_subject(&self) -> String {
         format!("Welcome, {}! <{}>", self.name, self.email)
     }
+}
+
+#[test]
+fn select_absent_field() {
+    type NameAbsent = select!(test_struct: name-);
+    let val: TestStruct<NameAbsent> = TestStruct::empty();
+    assert!(val.get_name().is_none());
+}
+
+#[test]
+fn select_all_absent() {
+    type AllAbsent = select!(test_struct: all-);
+    let val: TestStruct<AllAbsent> = TestStruct::empty();
+    assert!(val.get_name().is_none());
+    assert!(val.get_email().is_none());
+    assert!(val.get_id().is_none());
+}
+
+#[test]
+fn select_custom_presence_type() {
+    type CustomPresence = select!(test_struct: name<::structural_typing::presence::Optional>);
+    let val: TestStruct<CustomPresence> = TestStruct::empty().name(Some("Custom".to_owned()));
+    assert_eq!(val.name, Some("Custom".to_owned()));
+}
+
+#[test]
+fn select_spread_operator() {
+    fn add_id_field<F: test_struct::Fields>(
+        base: TestStruct<F>,
+        id: u64,
+    ) -> TestStruct<select!(test_struct: id, ...F)> {
+        base.id(id)
+    }
+
+    let with_name = TestStruct::empty().name("Alice".to_owned());
+    let with_id = add_id_field(with_name, 42);
+    assert_eq!(with_id.name, "Alice");
+    assert_eq!(with_id.id, 42);
+}
+
+#[test]
+fn select_spread_with_optional() {
+    type OptionalIdWithSpread<F> = select!(test_struct: id?, ...F);
+    let val: TestStruct<OptionalIdWithSpread<select!(test_struct: name)>> =
+        TestStruct::empty()
+            .name("Bob".to_owned())
+            .id(Some(123));
+    assert_eq!(val.name, "Bob");
+    assert_eq!(val.id, Some(123));
+}
+
+#[test]
+fn select_mixed_presence() {
+    type Mixed = select!(test_struct: name, email?, id-);
+    let val: TestStruct<Mixed> = TestStruct::empty()
+        .name("Charlie".to_owned())
+        .email(Some("charlie@example.com".to_owned()));
+    assert_eq!(val.name, "Charlie");
+    assert_eq!(val.email, Some("charlie@example.com".to_owned()));
+    assert!(val.get_id().is_none());
 }

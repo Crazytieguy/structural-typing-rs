@@ -1,5 +1,26 @@
-error: unknown serde field attribute `invalid_attribute`
- --> tests/ui/serde_malformed_attribute.rs:6:13
+error: requires crate feature `serde`
+ --> tests/ui/serde_malformed_attribute.rs:3:1
+  |
+3 | #[structural]
+  | ^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `structural` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: cannot find attribute `serde` in this scope
+ --> tests/ui/serde_malformed_attribute.rs:6:7
   |
 6 |     #[serde(invalid_attribute)]
-  |             ^^^^^^^^^^^^^^^^^
+  |       ^^^^^
+  |
+  = note: `serde` is an attribute that can be used by the derive macros `Deserialize` and `Serialize`, you might be missing a `derive` attribute
+  = note: `serde` is in scope, but it is a crate, not an attribute
+
+error: cannot find attribute `serde` in this scope
+ --> tests/ui/serde_malformed_attribute.rs:3:1
+  |
+3 | #[structural]
+  | ^^^^^^^^^^^^^
+  |
+  = note: `serde` is an attribute that can be used by the derive macros `Deserialize` and `Serialize`, you might be missing a `derive` attribute
+  = note: `serde` is in scope, but it is a crate, not an attribute
+  = note: this error originates in the attribute macro `structural` (in Nightly builds, run with -Z macro-backtrace for more info)

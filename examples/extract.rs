@@ -23,7 +23,7 @@ fn main() {
 
     // Convert to Optional
     let partial = User::empty().name("Bob".to_owned());
-    let (optional_creds, _) = partial.extract::<select!(user: ?name, ?email)>();
+    let (optional_creds, _) = partial.extract::<select!(user: name?, email?)>();
     assert_eq!(optional_creds.name, Some("Bob".to_owned()));
     assert_eq!(optional_creds.email, None);
 }

@@ -89,11 +89,31 @@ struct User {
 
 let json = r#"{"name": "Alice", "email": "alice@example.com"}"#;
 // name optional, email present, id absent
-let alice: User<select!(user: ?name, email)> = serde_json::from_str(json)?;
+let alice: User<select!(user: name?, email)> = serde_json::from_str(json)?;
 
 let response = alice.id(42);
 let json = serde_json::to_string(&response)?;
 // => {"id":42, "name": "Alice", "email": "alice@example.com"}
+```
+
+### Advanced select! syntax
+
+The `select!` macro supports additional syntax for more control:
+
+```rust
+// Explicit Absent fields
+type PartialUser = select!(user: name, email, id-);  // id is explicitly Absent
+
+// All fields Absent
+type EmptyUser = select!(user: all-);
+
+// Custom presence types
+type CustomUser = select!(user: name<Optional>, id);
+
+// Spread operator for generic composition
+fn add_field<F: user::Fields>(base: User<F>) -> User<select!(user: email, ...F)> {
+    base.email("email@example.com".to_owned())
+}
 ```
 
 ### Extract and merge
@@ -147,7 +167,7 @@ where
 }
 ```
 
-See [examples/](examples/) for more comprehensive usage including the REST API example.
+See [examples/](examples/) for more usage patterns, including a [REST API with SQLite](examples/todos-api/) demonstrating how one schema handles multiple endpoint types.
 
 ## License
 

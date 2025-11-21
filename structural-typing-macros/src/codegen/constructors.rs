@@ -14,7 +14,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     let field_names = info.fields.iter().map(|f| &f.name);
 
     quote! {
-        impl #impl_generics #struct_name<#(#user_type_args,)* #module_name::with::all::Absent> #where_clause {
+        impl #impl_generics #struct_name<#(#user_type_args,)* #module_name::with::all<::structural_typing::presence::Absent>> #where_clause {
             /// Creates an empty instance with all fields absent.
             pub fn empty() -> Self {
                 #struct_name {

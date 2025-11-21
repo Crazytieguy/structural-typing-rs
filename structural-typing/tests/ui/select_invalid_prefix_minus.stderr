@@ -1,7 +1,0 @@
-error: Invalid prefix '-' in select!. Use 'field' for Present or '?field' for Optional
- --> tests/ui/select_invalid_prefix_minus.rs:9:20
-  |
-9 |     type Invalid = select!(user: -name);
-  |                    ^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: this error originates in the macro `select` (in Nightly builds, run with -Z macro-backtrace for more info)

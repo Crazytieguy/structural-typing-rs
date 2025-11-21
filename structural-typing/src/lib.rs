@@ -246,26 +246,26 @@ pub use structural_typing_macros::structural;
 ///
 /// # Syntax
 /// - `select!(module: field)` - field is Present
-/// - `select!(module: ?field)` - field is Optional
-/// - `select!(module: ?all)` - all fields Optional
-/// - Multiple fields compose: `select!(module: field1, ?field2)` expands to `module::with::field1::Present<module::with::field2::Optional>`
+/// - `select!(module: field?)` - field is Optional
+/// - `select!(module: field-)` - field is Absent
+/// - `select!(module: field<Type>)` - field has custom presence type
+/// - `select!(module: all?)` - all fields Optional
+/// - `select!(module: all-)` - all fields Absent
+/// - `select!(module: field, ...F)` - field is Present, remaining fields from F
+/// - Multiple fields compose: `select!(module: field1, field2?)` expands to `module::with::field1<Present, module::with::field2<Optional>>`
 ///
 /// # Examples
 /// ```ignore
 /// type Create = select!(user: name, email);
-/// type Update = select!(user: ?name, ?email);
+/// type Update = select!(user: name?, email?);
+/// type WithId<F: user::Fields> = select!(user: id, ...F);
 /// fn create_user(user: User<Create>) {...}
 /// ```
 #[macro_export]
 macro_rules! select {
-    // Error: invalid + prefix
-    ($($module:ident)::+ : + $field:ident $($rest:tt)*) => {
-        compile_error!("Invalid prefix '+' in select!. Use 'field' for Present or '?field' for Optional")
-    };
-
-    // Error: invalid - prefix
-    ($($module:ident)::+ : - $field:ident $($rest:tt)*) => {
-        compile_error!("Invalid prefix '-' in select!. Use 'field' for Present or '?field' for Optional")
+    // Error: spread without fields
+    ($($module:ident)::+ : ... $spread:ty) => {
+        compile_error!("select! requires at least one explicit field before spread operator")
     };
 
     // Error: empty field list
@@ -273,33 +273,83 @@ macro_rules! select {
         compile_error!("select! requires at least one field")
     };
 
+    // Single field with spread: Present
+    ($($module:ident)::+ : $field:ident, ... $spread:ty) => {
+        $($module)::+::with::$field<::structural_typing::presence::Present, $spread>
+    };
+
+    // Single field with spread: Optional
+    ($($module:ident)::+ : $field:ident ?, ... $spread:ty) => {
+        $($module)::+::with::$field<::structural_typing::presence::Optional, $spread>
+    };
+
+    // Single field with spread: Absent
+    ($($module:ident)::+ : $field:ident -, ... $spread:ty) => {
+        $($module)::+::with::$field<::structural_typing::presence::Absent, $spread>
+    };
+
+    // Single field with spread: Custom type
+    ($($module:ident)::+ : $field:ident < $presence:ty >, ... $spread:ty) => {
+        $($module)::+::with::$field<$presence, $spread>
+    };
+
     // Single field: Present
     ($($module:ident)::+ : $field:ident) => {
-        $($module)::+::with::$field::Present
+        $($module)::+::with::$field
     };
 
     // Single field: Present with trailing comma
     ($($module:ident)::+ : $field:ident,) => {
-        $($module)::+::with::$field::Present
+        $($module)::+::with::$field
     };
 
     // Single field: Optional
-    ($($module:ident)::+ : ? $field:ident) => {
-        $($module)::+::with::$field::Optional
+    ($($module:ident)::+ : $field:ident ?) => {
+        $($module)::+::with::$field<::structural_typing::presence::Optional>
     };
 
     // Single field: Optional with trailing comma
-    ($($module:ident)::+ : ? $field:ident,) => {
-        $($module)::+::with::$field::Optional
+    ($($module:ident)::+ : $field:ident ?,) => {
+        $($module)::+::with::$field<::structural_typing::presence::Optional>
+    };
+
+    // Single field: Absent
+    ($($module:ident)::+ : $field:ident -) => {
+        $($module)::+::with::$field<::structural_typing::presence::Absent>
+    };
+
+    // Single field: Absent with trailing comma
+    ($($module:ident)::+ : $field:ident -,) => {
+        $($module)::+::with::$field<::structural_typing::presence::Absent>
+    };
+
+    // Single field: Custom type
+    ($($module:ident)::+ : $field:ident < $presence:ty >) => {
+        $($module)::+::with::$field<$presence>
+    };
+
+    // Single field: Custom type with trailing comma
+    ($($module:ident)::+ : $field:ident < $presence:ty >,) => {
+        $($module)::+::with::$field<$presence>
+    };
+
+    // Multiple fields: Optional + rest
+    ($($module:ident)::+ : $field:ident ?, $($rest:tt)+) => {
+        $($module)::+::with::$field<::structural_typing::presence::Optional, select!($($module)::+ : $($rest)+)>
+    };
+
+    // Multiple fields: Absent + rest
+    ($($module:ident)::+ : $field:ident -, $($rest:tt)+) => {
+        $($module)::+::with::$field<::structural_typing::presence::Absent, select!($($module)::+ : $($rest)+)>
+    };
+
+    // Multiple fields: Custom type + rest
+    ($($module:ident)::+ : $field:ident < $presence:ty >, $($rest:tt)+) => {
+        $($module)::+::with::$field<$presence, select!($($module)::+ : $($rest)+)>
     };
 
     // Multiple fields: Present + rest
     ($($module:ident)::+ : $field:ident, $($rest:tt)+) => {
-        $($module)::+::with::$field::Present<select!($($module)::+ : $($rest)+)>
-    };
-
-    // Multiple fields: Optional + rest
-    ($($module:ident)::+ : ? $field:ident, $($rest:tt)+) => {
-        $($module)::+::with::$field::Optional<select!($($module)::+ : $($rest)+)>
+        $($module)::+::with::$field<::structural_typing::presence::Present, select!($($module)::+ : $($rest)+)>
     };
 }

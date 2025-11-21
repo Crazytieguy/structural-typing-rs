@@ -17,7 +17,7 @@ struct Todo {
 }
 
 type CreateTodo = Todo<select!(todo: title)>;
-type UpdateTodo = Todo<select!(todo: ?title, ?completed)>;
+type UpdateTodo = Todo<select!(todo: title?, completed?)>;
 type TodoId = Todo<select!(todo: id)>;
 
 async fn create_todo(
