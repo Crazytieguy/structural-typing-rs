@@ -42,7 +42,7 @@ struct UserWithRenameAll {
 #[test]
 fn deserialize_full() {
     let json = r#"{"name":"Alice","email":"alice@test.com","id":123}"#;
-    let user: TestUser = serde_json::from_str(json).unwrap();
+    let user: TestUser<test_user::with::all> = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Alice");
     assert_eq!(user.email, "alice@test.com");
     assert_eq!(user.id, 123);
@@ -50,7 +50,7 @@ fn deserialize_full() {
 
 #[test]
 fn serialize_full() {
-    let user = TestUser::empty()
+    let user = test_user::empty()
         .name("Charlie".to_owned())
         .email("charlie@test.com".to_owned())
         .id(789);
@@ -81,7 +81,7 @@ fn deserialize_missing_required_field_error() {
 #[test]
 fn deserialize_with_rename_attr() {
     let json = r#"{"user_name":"Alice","email":"alice@test.com","id":123}"#;
-    let user: UserWithRename = serde_json::from_str(json).unwrap();
+    let user: UserWithRename<user_with_rename::with::all> = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Alice");
     assert_eq!(user.email, "alice@test.com");
     assert_eq!(user.id, 123);
@@ -89,7 +89,7 @@ fn deserialize_with_rename_attr() {
 
 #[test]
 fn serialize_with_rename_attr() {
-    let user = UserWithRename::empty()
+    let user = user_with_rename::empty()
         .name("Charlie".to_owned())
         .email("charlie@test.com".to_owned())
         .id(789);
@@ -101,7 +101,7 @@ fn serialize_with_rename_attr() {
 #[test]
 fn deserialize_with_alias_primary_name() {
     let json = r#"{"name":"Dave","email":"dave@test.com","id":123}"#;
-    let user: UserWithAlias = serde_json::from_str(json).unwrap();
+    let user: UserWithAlias<user_with_alias::with::all> = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Dave");
     assert_eq!(user.email, "dave@test.com");
 }
@@ -109,7 +109,7 @@ fn deserialize_with_alias_primary_name() {
 #[test]
 fn deserialize_with_alias_alternate_name() {
     let json = r#"{"name":"Eve","mail":"eve@test.com","id":456}"#;
-    let user: UserWithAlias = serde_json::from_str(json).unwrap();
+    let user: UserWithAlias<user_with_alias::with::all> = serde_json::from_str(json).unwrap();
     assert_eq!(user.name, "Eve");
     assert_eq!(user.email, "eve@test.com");
 }
@@ -150,7 +150,7 @@ fn deserialize_extra_fields_with_absent() {
 
 #[test]
 fn serialize_partial_omits_absent() {
-    let user = TestUser::empty().name("Alice".to_owned()).id(123);
+    let user = test_user::empty().name("Alice".to_owned()).id(123);
     let json = serde_json::to_string(&user).unwrap();
     assert!(json.contains(r#""name":"Alice"#));
     assert!(json.contains(r#""id":123"#));
@@ -160,7 +160,8 @@ fn serialize_partial_omits_absent() {
 #[test]
 fn deserialize_with_rename_all() {
     let json = r#"{"userName":"Alice","emailAddress":"alice@test.com","userId":123}"#;
-    let user: UserWithRenameAll = serde_json::from_str(json).unwrap();
+    let user: UserWithRenameAll<user_with_rename_all::with::all> =
+        serde_json::from_str(json).unwrap();
     assert_eq!(user.user_name, "Alice");
     assert_eq!(user.email_address, "alice@test.com");
     assert_eq!(user.user_id, 123);
@@ -168,7 +169,7 @@ fn deserialize_with_rename_all() {
 
 #[test]
 fn serialize_with_rename_all() {
-    let user = UserWithRenameAll::empty()
+    let user = user_with_rename_all::empty()
         .user_name("Bob".to_owned())
         .email_address("bob@test.com".to_owned())
         .user_id(456);
@@ -183,7 +184,7 @@ fn serialize_with_rename_all() {
 
 #[test]
 fn serialize_with_alias() {
-    let user = UserWithAlias::empty()
+    let user = user_with_alias::empty()
         .name("Charlie".to_owned())
         .email("charlie@test.com".to_owned())
         .id(789);
@@ -197,7 +198,7 @@ fn serialize_with_alias() {
 #[test]
 fn deserialize_null_for_present_field_errors() {
     let json = r#"{"name":null,"email":"alice@test.com","id":123}"#;
-    let result: Result<TestUser, _> = serde_json::from_str(json);
+    let result: Result<TestUser<test_user::with::all>, _> = serde_json::from_str(json);
     assert!(result.is_err());
 }
 
@@ -220,40 +221,40 @@ fn deserialize_null_for_absent_field_ignored() {
 
 #[test]
 fn roundtrip_full_struct() {
-    let original = TestUser::empty()
+    let original = test_user::empty()
         .name("Alice".to_owned())
         .email("alice@test.com".to_owned())
         .id(123);
     let json = serde_json::to_string(&original).unwrap();
-    let deserialized: TestUser = serde_json::from_str(&json).unwrap();
+    let deserialized: TestUser<test_user::with::all> = serde_json::from_str(&json).unwrap();
     assert_eq!(original, deserialized);
 }
 
 #[test]
 fn roundtrip_partial_struct() {
-    let original = TestUser::empty().name("Bob".to_owned()).id(456);
+    let original = test_user::empty().name("Bob".to_owned()).id(456);
     let json = serde_json::to_string(&original).unwrap();
     let deserialized: TestUser<select!(test_user: name, id)> = serde_json::from_str(&json).unwrap();
     assert_eq!(original.name, deserialized.name);
     assert_eq!(original.id, deserialized.id);
 }
 
+#[structural]
+#[derive(Deserialize)]
+struct DeserializeOnly {
+    value: String,
+}
+
 #[test]
 fn deserialize_only_no_other_derives() {
-    #[structural]
-    #[derive(Deserialize)]
-    struct DeserializeOnly {
-        value: String,
-    }
-
     let json = r#"{"value":"test"}"#;
-    let result: DeserializeOnly = serde_json::from_str(json).unwrap();
+    let result: DeserializeOnly<deserialize_only::with::all> = serde_json::from_str(json).unwrap();
     assert_eq!(result.value, "test");
 }
 
 #[test]
 fn roundtrip_optional_fields() {
-    let with_email = TestUser::empty()
+    let with_email = test_user::empty()
         .name("Charlie".to_owned())
         .email(Some("charlie@test.com".to_owned()))
         .id(789);
@@ -264,7 +265,7 @@ fn roundtrip_optional_fields() {
     assert_eq!(with_email.email, deserialized.email);
     assert_eq!(with_email.id, deserialized.id);
 
-    let without_email = TestUser::empty()
+    let without_email = test_user::empty()
         .name("Dave".to_owned())
         .email(None)
         .id(101);
@@ -279,7 +280,7 @@ fn roundtrip_optional_fields() {
 #[test]
 fn error_message_includes_field_name() {
     let json_missing_name = r#"{"email":"test@test.com","id":1}"#;
-    let result: Result<TestUser, _> = serde_json::from_str(json_missing_name);
+    let result: Result<TestUser<test_user::with::all>, _> = serde_json::from_str(json_missing_name);
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("name") || err_msg.contains("missing"));
@@ -288,7 +289,7 @@ fn error_message_includes_field_name() {
 #[test]
 fn error_message_for_multiple_missing_fields() {
     let json = r#"{"email":"test@test.com"}"#;
-    let result: Result<TestUser, _> = serde_json::from_str(json);
+    let result: Result<TestUser<test_user::with::all>, _> = serde_json::from_str(json);
     assert!(result.is_err());
 }
 
@@ -301,21 +302,22 @@ struct Address {
 
 #[structural]
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct UserWithAddress<A: address::Fields> {
+struct UserWithAddress<A: address::Fields = select!(address: all-)> {
     name: String,
     address: Address<A>,
 }
 
 #[test]
 fn nested_structural_types() {
-    let user = UserWithAddress::empty().name("Alice".to_owned()).address(
-        Address::empty()
+    let user = user_with_address::empty().name("Alice".to_owned()).address(
+        address::empty()
             .city("Seattle".to_owned())
             .country("USA".to_owned()),
     );
 
     let json = serde_json::to_string(&user).unwrap();
-    let deserialized: UserWithAddress<address::with::all> = serde_json::from_str(&json).unwrap();
+    let deserialized: UserWithAddress<user_with_address::with::all, address::with::all> =
+        serde_json::from_str(&json).unwrap();
 
     assert_eq!(deserialized.name, "Alice");
     assert_eq!(deserialized.address.city, "Seattle");
@@ -325,12 +327,13 @@ fn nested_structural_types() {
 #[test]
 fn nested_with_partial_address_city_only() {
     type AddressCityOnly = select!(address: city);
-    let user = UserWithAddress::empty()
+    let user = user_with_address::empty()
         .name("Bob".to_owned())
-        .address(Address::empty().city("London".to_owned()));
+        .address(address::empty().city("London".to_owned()));
 
     let json = serde_json::to_string(&user).unwrap();
-    let deserialized: UserWithAddress<AddressCityOnly> = serde_json::from_str(&json).unwrap();
+    let deserialized: UserWithAddress<user_with_address::with::all, AddressCityOnly> =
+        serde_json::from_str(&json).unwrap();
 
     assert_eq!(deserialized.name, "Bob");
     assert_eq!(deserialized.address.city, "London");
@@ -339,25 +342,29 @@ fn nested_with_partial_address_city_only() {
 #[test]
 fn nested_with_optional_address_fields() {
     type AddressOptional = select!(address: city, country?);
-    let user_with_country = UserWithAddress::empty().name("Charlie".to_owned()).address(
-        Address::empty()
-            .city("Paris".to_owned())
-            .country(Some("France".to_owned())),
-    );
+    let user_with_country = user_with_address::empty()
+        .name("Charlie".to_owned())
+        .address(
+            address::empty()
+                .city("Paris".to_owned())
+                .country(Some("France".to_owned())),
+        );
 
     let json = serde_json::to_string(&user_with_country).unwrap();
-    let deserialized: UserWithAddress<AddressOptional> = serde_json::from_str(&json).unwrap();
+    let deserialized: UserWithAddress<user_with_address::with::all, AddressOptional> =
+        serde_json::from_str(&json).unwrap();
 
     assert_eq!(deserialized.name, "Charlie");
     assert_eq!(deserialized.address.city, "Paris");
     assert_eq!(deserialized.address.country, Some("France".to_owned()));
 
-    let user_without_country = UserWithAddress::empty()
+    let user_without_country = user_with_address::empty()
         .name("Dave".to_owned())
-        .address(Address::empty().city("Berlin".to_owned()).country(None));
+        .address(address::empty().city("Berlin".to_owned()).country(None));
 
     let json = serde_json::to_string(&user_without_country).unwrap();
-    let deserialized: UserWithAddress<AddressOptional> = serde_json::from_str(&json).unwrap();
+    let deserialized: UserWithAddress<user_with_address::with::all, AddressOptional> =
+        serde_json::from_str(&json).unwrap();
 
     assert_eq!(deserialized.name, "Dave");
     assert_eq!(deserialized.address.city, "Berlin");
@@ -367,8 +374,8 @@ fn nested_with_optional_address_fields() {
 #[test]
 fn nested_with_absent_user_fields() {
     type UserNameOnly = select!(user_with_address: name);
-    let user: UserWithAddress<address::with::all, UserNameOnly> =
-        UserWithAddress::empty().name("Eve".to_owned());
+    let user: UserWithAddress<UserNameOnly, select!(address: all-)> =
+        user_with_address::empty().name("Eve".to_owned());
 
     let json = serde_json::to_string(&user).unwrap();
     assert!(json.contains(r#""name":"Eve"#));
@@ -377,12 +384,12 @@ fn nested_with_absent_user_fields() {
 
 #[test]
 fn nested_merge_addresses() {
-    let city_part = Address::empty().city("Tokyo".to_owned());
-    let country_part = Address::empty().country("Japan".to_owned());
+    let city_part = address::empty().city("Tokyo".to_owned());
+    let country_part = address::empty().country("Japan".to_owned());
 
     let merged = city_part.merge(country_part);
 
-    let user = UserWithAddress::empty()
+    let user = user_with_address::empty()
         .name("Frank".to_owned())
         .address(merged);
 
@@ -393,7 +400,7 @@ fn nested_merge_addresses() {
 
 #[test]
 fn nested_extract_address_fields() {
-    let full_address = Address::empty()
+    let full_address = address::empty()
         .city("Rome".to_owned())
         .country("Italy".to_owned());
 
@@ -403,7 +410,7 @@ fn nested_extract_address_fields() {
     assert_eq!(city_only.city, "Rome");
     assert_eq!(remainder.country, "Italy");
 
-    let user_with_city = UserWithAddress::empty()
+    let user_with_city = user_with_address::empty()
         .name("Grace".to_owned())
         .address(city_only);
 

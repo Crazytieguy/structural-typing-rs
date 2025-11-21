@@ -12,6 +12,6 @@ impl<F: user::Fields<name = Present>> User<F> {
 }
 
 fn main() {
-    let user = User::empty();
+    let user = user::empty();
     user.greet();
 }

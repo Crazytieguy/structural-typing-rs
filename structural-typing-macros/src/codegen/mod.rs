@@ -1,11 +1,11 @@
 mod builders;
-mod constructors;
 mod extract;
 mod fields_module;
 mod generics_utils;
 mod merge;
 mod serde_deserialize;
 mod struct_def;
+mod type_subst;
 
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -19,7 +19,6 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
     let (serde_helper, serde_try_from) = serde_deserialize::generate(&info)?;
     let fields_mod = fields_module::generate(&info, serde_helper);
     let struct_def = struct_def::generate(&info);
-    let constructors = constructors::generate(&info);
     let builders = builders::generate(&info);
     let merge = merge::generate(&info);
     let extract = extract::generate(&info);
@@ -30,8 +29,6 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
         #serde_try_from
 
         #struct_def
-
-        #constructors
 
         #builders
 

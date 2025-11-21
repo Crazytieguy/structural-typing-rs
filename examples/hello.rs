@@ -10,7 +10,7 @@ struct User {
 
 fn main() {
     // Build incrementally
-    let user = User::empty().name("Alice".to_owned());
+    let user = user::empty().name("Alice".to_owned());
     assert_eq!(user.name, "Alice");
 
     let user = user.email("alice@example.com".to_owned());

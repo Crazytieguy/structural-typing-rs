@@ -19,13 +19,14 @@ struct Todo {
 type CreateTodo = Todo<select!(todo: title)>;
 type UpdateTodo = Todo<select!(todo: title?, completed?)>;
 type TodoId = Todo<select!(todo: id)>;
+type FullTodo = Todo<select!(todo: all)>;
 
 async fn create_todo(
     State(pool): State<SqlitePool>,
     Json(payload): Json<CreateTodo>,
-) -> Result<(StatusCode, Json<Todo>), StatusCode> {
+) -> Result<(StatusCode, Json<FullTodo>), StatusCode> {
     let todo = sqlx::query_as!(
-        Todo,
+        FullTodo,
         "INSERT INTO todos (title) VALUES (?) RETURNING *",
         payload.title
     )
@@ -38,11 +39,11 @@ async fn create_todo(
 
 #[derive(Serialize)]
 struct ListTodos {
-    todos: Vec<Todo>,
+    todos: Vec<FullTodo>,
 }
 
 async fn list_todos(State(pool): State<SqlitePool>) -> Result<Json<ListTodos>, StatusCode> {
-    let todos = sqlx::query_as!(Todo, "SELECT * FROM todos")
+    let todos = sqlx::query_as!(FullTodo, "SELECT * FROM todos")
         .fetch_all(&pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -53,8 +54,8 @@ async fn list_todos(State(pool): State<SqlitePool>) -> Result<Json<ListTodos>, S
 async fn get_todo(
     State(pool): State<SqlitePool>,
     Path(Todo { id, .. }): Path<TodoId>,
-) -> Result<Json<Todo>, StatusCode> {
-    let todo = sqlx::query_as!(Todo, "SELECT * FROM todos WHERE id = ?", id)
+) -> Result<Json<FullTodo>, StatusCode> {
+    let todo = sqlx::query_as!(FullTodo, "SELECT * FROM todos WHERE id = ?", id)
         .fetch_one(&pool)
         .await
         .map_err(|_| StatusCode::NOT_FOUND)?;
@@ -66,9 +67,9 @@ async fn update_todo(
     State(pool): State<SqlitePool>,
     Path(Todo { id, .. }): Path<TodoId>,
     Json(payload): Json<UpdateTodo>,
-) -> Result<Json<Todo>, StatusCode> {
+) -> Result<Json<FullTodo>, StatusCode> {
     let todo = sqlx::query_as!(
-        Todo,
+        FullTodo,
         "UPDATE todos
          SET title = COALESCE(?, title),
              completed = COALESCE(?, completed)

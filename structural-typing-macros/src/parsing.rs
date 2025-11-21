@@ -1,8 +1,11 @@
 use heck::ToSnakeCase;
 use proc_macro2::Span;
+use std::collections::HashSet;
 use syn::{
     Attribute, Data, DeriveInput, Fields, Generics, Ident, Type, Visibility, spanned::Spanned,
 };
+
+use crate::analysis;
 
 #[derive(Debug)]
 pub struct StructInfo {
@@ -13,6 +16,7 @@ pub struct StructInfo {
     pub derives: Vec<Ident>,
     pub other_attrs: Vec<Attribute>,
     pub generics: Generics,
+    pub single_field_generics: HashSet<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +73,14 @@ pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
 
     let (derives, other_attrs) = split_derives_and_attrs(input.attrs)?;
 
+    let field_types: Vec<(String, Type)> = fields
+        .iter()
+        .map(|f| (f.name.to_string(), f.ty.clone()))
+        .collect();
+
+    let usage_map = analysis::analyze_generic_usage(&input.generics, &field_types);
+    let single_field_generics = analysis::identify_single_field_generics(&usage_map);
+
     Ok(StructInfo {
         name,
         module_name,
@@ -77,6 +89,7 @@ pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
         derives,
         other_attrs,
         generics: input.generics,
+        single_field_generics,
     })
 }
 

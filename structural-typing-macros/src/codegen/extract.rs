@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::codegen::generics_utils::{impl_generics_with_f, remainder_type_args};
+use crate::codegen::generics_utils::{impl_generics_with_f, remainder_type_args, type_args_with_f};
 use crate::parsing::StructInfo;
 
 fn sanitize_ident(ident: &syn::Ident) -> String {
@@ -16,6 +16,13 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     let (impl_generics, user_type_args) = impl_generics_with_f(&info.generics, module_name);
     let (impl_generics, _, where_clause) = impl_generics.split_for_impl();
     let remainder_type_args = remainder_type_args(&info.generics, &user_type_args);
+    let impl_type_args = type_args_with_f(&info.generics, &user_type_args, quote! { F });
+    let f2_type_args = type_args_with_f(&info.generics, &user_type_args, quote! { F2 });
+    let remainder_type_args_full = type_args_with_f(
+        &info.generics,
+        &user_type_args,
+        quote! { #module_name::Remainder #remainder_type_args },
+    );
 
     let field_names: Vec<_> = info.fields.iter().map(|f| &f.name).collect();
 
@@ -132,9 +139,9 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     });
 
     quote! {
-        impl #impl_generics #struct_name<#(#user_type_args,)* F> #where_clause {
+        impl #impl_generics #struct_name #impl_type_args #where_clause {
             /// Extracts selected fields and remainder. Always succeeds.
-            pub fn extract<F2: #module_name::Fields>(self) -> (#struct_name<#(#user_type_args,)* F2>, #struct_name<#(#user_type_args,)* #module_name::Remainder #remainder_type_args>)
+            pub fn extract<F2: #module_name::Fields>(self) -> (#struct_name #f2_type_args, #struct_name #remainder_type_args_full)
             where
                 #(#extract_where_clauses),*
             {
@@ -148,7 +155,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
             }
 
             /// Extracts selected fields and remainder. Returns `Err(self)` if any Optional field is None but target needs Present.
-            pub fn try_extract<F2: #module_name::Fields>(self) -> Result<(#struct_name<#(#user_type_args,)* F2>, #struct_name<#(#user_type_args,)* #module_name::Remainder #remainder_type_args>), Self>
+            pub fn try_extract<F2: #module_name::Fields>(self) -> Result<(#struct_name #f2_type_args, #struct_name #remainder_type_args_full), Self>
             where
                 #(#try_extract_where_clauses),*
             {

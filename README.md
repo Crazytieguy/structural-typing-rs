@@ -66,7 +66,7 @@ fn display_user<F: user::Fields<id = Present>>(user: &User<F>) {
 The builder API infers field presence from the value type:
 
 ```rust
-let bob = User::empty().id(123);
+let bob = user::empty().id(123);
 display_user(&bob);
 
 let bob = bob.name("Bob".to_owned());
@@ -116,7 +116,7 @@ assert_eq!(id_only.id, 42);
 
 let alice = credentials.merge(id_only);
 // Merged values override existing values
-let overridden = alice.merge(User::empty().id(21));
+let overridden = alice.merge(user::empty().id(21));
 assert_eq!(overridden.name, "Alice");
 assert_eq!(overridden.id, 21);
 ```
@@ -141,7 +141,7 @@ struct User<A: address::Fields> {
 }
 
 // Require specific nested fields
-fn ship<A, F>(user: User<A, F>)
+fn ship<F, A>(user: User<F, A>)
 where
     A: address::Fields<street = Present, city = Present>,
     F: user::Fields<id = Present, address = Present>

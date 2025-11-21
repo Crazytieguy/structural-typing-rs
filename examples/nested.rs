@@ -1,6 +1,6 @@
 //! Demonstrates struct with generic type parameters
 
-use structural_typing::{presence::Present, structural};
+use structural_typing::{presence::Present, select, structural};
 
 #[structural]
 struct Address {
@@ -9,7 +9,7 @@ struct Address {
 }
 
 #[structural]
-struct User<A: address::Fields> {
+struct User<A: address::Fields = select!(address: all-)> {
     name: String,
     email: String,
     address: Address<A>,
@@ -17,11 +17,11 @@ struct User<A: address::Fields> {
 
 fn main() {
     // Generic struct with full nested type
-    let address = Address::empty()
+    let address = address::empty()
         .city("Tokyo".to_owned())
         .country("Japan".to_owned());
 
-    let user = User::empty()
+    let user = user::empty()
         .name("Alice".to_owned())
         .email("alice@example.com".to_owned())
         .address(address);
@@ -29,21 +29,17 @@ fn main() {
     assert_eq!(user.name, "Alice");
     assert_eq!(user.address.city, "Tokyo");
 
-    // Generic struct with partial nested type
-    let partial = Address::empty().city("London".to_owned());
+    // Generic can change type!
+    let partial = address::empty().city("London".to_owned());
 
-    let user2 = User::empty()
-        .name("Bob".to_owned())
-        .email("bob@example.com".to_owned())
-        .address(partial);
+    let user = user.address(partial);
 
-    assert_eq!(user2.email, "bob@example.com");
-    assert_eq!(user2.address.city, "London");
+    assert_eq!(user.address.city, "London");
 
     // Generic impl requiring specific fields
-    fn get_email<A: address::Fields>(user: User<A, impl user::Fields<email = Present>>) -> String {
+    fn get_email<U: user::Fields<email = Present>, A: address::Fields>(user: User<U, A>) -> String {
         user.email
     }
 
-    assert_eq!(get_email(user2), "bob@example.com");
+    assert_eq!(get_email(user), "alice@example.com");
 }

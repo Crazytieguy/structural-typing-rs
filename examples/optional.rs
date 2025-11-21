@@ -9,7 +9,7 @@ struct Config {
 }
 
 fn main() {
-    let mut config = Config::empty()
+    let mut config = config::empty()
         .host("localhost".to_owned())
         .timeout(Some(30));
     assert_eq!(config.timeout, Some(30));

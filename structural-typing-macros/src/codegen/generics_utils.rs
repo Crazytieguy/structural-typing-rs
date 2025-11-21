@@ -50,6 +50,26 @@ pub fn impl_generics_with_f(
     (impl_generics, user_type_args)
 }
 
+/// Generates type arguments with proper lifetime ordering
+/// Returns <lifetimes, f_value, other_params> or <f_value> if no user generics
+pub fn type_args_with_f(
+    generics: &Generics,
+    user_type_args: &[TokenStream],
+    f_value: TokenStream,
+) -> TokenStream {
+    if generics.params.is_empty() {
+        quote! { <#f_value> }
+    } else {
+        let (lifetime_args, other_args): (Vec<_>, Vec<_>) = user_type_args
+            .iter()
+            .zip(generics.params.iter())
+            .partition(|(_, param)| matches!(param, GenericParam::Lifetime(_)));
+        let lifetime_tokens: Vec<_> = lifetime_args.into_iter().map(|(tok, _)| tok).collect();
+        let other_tokens: Vec<_> = other_args.into_iter().map(|(tok, _)| tok).collect();
+        quote! { <#(#lifetime_tokens,)* #f_value, #(#other_tokens),*> }
+    }
+}
+
 /// Generates remainder type arguments with proper lifetime ordering
 /// Returns <lifetimes, F, F2, other_params> or <F, F2> if no user generics
 pub fn remainder_type_args(generics: &Generics, user_type_args: &[TokenStream]) -> TokenStream {
@@ -64,4 +84,24 @@ pub fn remainder_type_args(generics: &Generics, user_type_args: &[TokenStream]) 
         let other_tokens: Vec<_> = other_args.into_iter().map(|(tok, _)| tok).collect();
         quote! { <#(#lifetime_tokens,)* F, F2, #(#other_tokens),*> }
     }
+}
+
+/// Returns user generic params that don't have default values (not trailing defaults)
+pub fn non_defaulted_params(generics: &Generics) -> Vec<GenericParam> {
+    let params: Vec<_> = generics.params.iter().cloned().collect();
+
+    let mut first_default_idx = params.len();
+    for (i, param) in params.iter().enumerate().rev() {
+        if let GenericParam::Type(type_param) = param {
+            if type_param.default.is_some() {
+                first_default_idx = i;
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+
+    params.into_iter().take(first_default_idx).collect()
 }

@@ -2,7 +2,7 @@ error[E0308]: mismatched types
   --> tests/ui/type_mismatch_assignment.rs:12:16
    |
 12 |     takes_full(user_empty);
-   |     ---------- ^^^^^^^^^^ expected `User`, found `User<FieldSet<Absent>>`
+   |     ---------- ^^^^^^^^^^ expected `User<FieldSet<Present>>`, found `User<FieldSet<Absent>>`
    |     |
    |     arguments to this function are incorrect
    |
@@ -11,5 +11,5 @@ error[E0308]: mismatched types
 note: function defined here
   --> tests/ui/type_mismatch_assignment.rs:8:4
    |
- 8 | fn takes_full(_user: User) {}
-   |    ^^^^^^^^^^ -----------
+ 8 | fn takes_full(_user: User<user::with::all>) {}
+   |    ^^^^^^^^^^ ----------------------------

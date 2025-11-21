@@ -11,9 +11,17 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     let other_attrs = &info.other_attrs;
 
     let mut combined_generics = info.generics.clone();
-    let f_param: syn::GenericParam =
-        syn::parse_quote!(F: #module_name::Fields = #module_name::with::all);
-    combined_generics.params.push(f_param);
+    let f_param: syn::GenericParam = syn::parse_quote!(F: #module_name::Fields);
+
+    // Insert F after lifetimes but before other params
+    let mut insertion_point = combined_generics.params.len();
+    for (i, param) in combined_generics.params.iter().enumerate() {
+        if !matches!(param, syn::GenericParam::Lifetime(_)) {
+            insertion_point = i;
+            break;
+        }
+    }
+    combined_generics.params.insert(insertion_point, f_param);
 
     let params = &combined_generics.params;
     let where_clause = &combined_generics.where_clause;

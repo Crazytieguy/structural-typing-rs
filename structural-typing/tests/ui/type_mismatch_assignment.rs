@@ -5,9 +5,9 @@ struct User {
     name: String,
 }
 
-fn takes_full(_user: User) {}
+fn takes_full(_user: User<user::with::all>) {}
 
 fn main() {
-    let user_empty = User::empty();
+    let user_empty = user::empty();
     takes_full(user_empty);
 }

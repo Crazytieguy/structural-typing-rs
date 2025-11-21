@@ -2,6 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Ident, Type};
 
+use crate::codegen::generics_utils;
 use crate::parsing::StructInfo;
 
 fn generate_fields_trait_parts(field_names: &[&Ident]) -> Vec<TokenStream> {
@@ -61,6 +62,45 @@ fn generate_remainder_fields(field_names: &[&Ident], field_types: &[&Type]) -> V
             }
         })
         .collect()
+}
+
+fn generate_empty_constructor(info: &StructInfo) -> TokenStream {
+    let struct_name = &info.name;
+    let field_names: Vec<_> = info.fields.iter().map(|f| &f.name).collect();
+
+    let non_defaulted_params = generics_utils::non_defaulted_params(&info.generics);
+    let non_defaulted_params_with_bounds: Vec<_> = non_defaulted_params.iter().collect();
+
+    // Build a generics object with only non-defaulted params for type_args_with_f
+    let mut non_defaulted_generics = info.generics.clone();
+    non_defaulted_generics.params = non_defaulted_params.iter().cloned().collect();
+
+    let user_type_args_for_return: Vec<_> =
+        generics_utils::extract_type_param_idents(&non_defaulted_generics.params);
+
+    let f_value = quote! { with::all<::structural_typing::presence::Absent> };
+    let type_args = generics_utils::type_args_with_f(
+        &non_defaulted_generics,
+        &user_type_args_for_return,
+        f_value,
+    );
+
+    let where_clause = &info.generics.where_clause;
+
+    let generic_params = if non_defaulted_params.is_empty() {
+        quote! {}
+    } else {
+        quote! { <#(#non_defaulted_params_with_bounds),*> }
+    };
+
+    quote! {
+        /// Creates an empty instance with all fields absent.
+        pub fn empty #generic_params () -> #struct_name #type_args #where_clause {
+            #struct_name {
+                #(#field_names: ::core::marker::PhantomData),*
+            }
+        }
+    }
 }
 
 fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
@@ -135,6 +175,7 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
     let merge_fields = generate_merge_fields(&field_names);
     let remainder_fields = generate_remainder_fields(&field_names, &field_types);
     let with_modules = generate_with_modules(&field_names);
+    let empty_constructor = generate_empty_constructor(info);
 
     let remainder_params = if info.generics.params.is_empty() {
         quote! { F1, F2 }
@@ -206,6 +247,8 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
             #canonical_type
 
             #with_modules
+
+            #empty_constructor
         }
     }
 }

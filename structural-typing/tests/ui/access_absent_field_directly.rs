@@ -6,6 +6,6 @@ struct User {
 }
 
 fn main() {
-    let user = User::empty();
+    let user = user::empty();
     let _name_str: String = user.name;
 }

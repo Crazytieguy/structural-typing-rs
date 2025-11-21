@@ -12,15 +12,15 @@ struct User {
 
 fn main() {
     // Success case
-    let complete = User::empty()
+    let complete = user::empty()
         .name(Some("Bob".to_owned()))
         .email(Some("bob@example.com".to_owned()))
         .id(456);
 
-    let expected_credentials = User::empty()
+    let expected_credentials = user::empty()
         .name("Bob".to_owned())
         .email("bob@example.com".to_owned());
-    let expected_remainder = User::empty().id(456);
+    let expected_remainder = user::empty().id(456);
 
     match complete.try_extract::<select!(user: name, email)>() {
         Ok((credentials, remainder)) => {
@@ -31,7 +31,7 @@ fn main() {
     }
 
     // Failure case
-    let partial = User::empty()
+    let partial = user::empty()
         .name(Some("Carol".to_owned()))
         .email(None)
         .id(789);

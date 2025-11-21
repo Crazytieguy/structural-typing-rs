@@ -15,7 +15,7 @@ struct SingleField {
 
 #[test]
 fn raw_identifiers() {
-    let cfg = RawIdConfig::empty()
+    let cfg = raw_id_config::empty()
         .r#type("test".to_owned())
         .r#match(true)
         .normal(42);
@@ -27,7 +27,7 @@ fn raw_identifiers() {
 
 #[test]
 fn raw_identifiers_extract() {
-    let cfg = RawIdConfig::empty()
+    let cfg = raw_id_config::empty()
         .r#type("test".to_owned())
         .r#match(true)
         .normal(42);
@@ -40,7 +40,7 @@ fn raw_identifiers_extract() {
 
 #[test]
 fn raw_identifiers_try_extract() {
-    let cfg = RawIdConfig::empty()
+    let cfg = raw_id_config::empty()
         .r#type(Some("optional".to_owned()))
         .r#match(Some(false))
         .normal(99);
@@ -52,7 +52,7 @@ fn raw_identifiers_try_extract() {
     assert!(!extracted.r#match);
     assert_eq!(remainder.normal, 99);
 
-    let partial = RawIdConfig::empty()
+    let partial = raw_id_config::empty()
         .r#type(Some("value".to_owned()))
         .r#match(None)
         .normal(77);
@@ -64,13 +64,13 @@ fn raw_identifiers_try_extract() {
 #[test]
 fn single_field_struct() {
     type DataPresent = select!(single_field: data);
-    let val: SingleField<DataPresent> = SingleField::empty().data("test".to_owned());
+    let val: SingleField<DataPresent> = single_field::empty().data("test".to_owned());
     assert_eq!(val.data, "test");
 
     type DataOptional = select!(single_field: data?);
-    let val2: SingleField<DataOptional> = SingleField::empty().data(Some("test".to_owned()));
+    let val2: SingleField<DataOptional> = single_field::empty().data(Some("test".to_owned()));
     assert_eq!(val2.data, Some("test".to_owned()));
 
-    let val3: SingleField<DataOptional> = SingleField::empty().data(None);
+    let val3: SingleField<DataOptional> = single_field::empty().data(None);
     assert_eq!(val3.data, None);
 }

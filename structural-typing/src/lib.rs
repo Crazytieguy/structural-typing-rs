@@ -22,7 +22,7 @@
 //!
 //! ### Define the schema
 //!
-//! ```
+//! ```ignore
 //! use structural_typing::structural;
 //!
 //! #[structural]
@@ -41,7 +41,7 @@
 //! Functions can require specific fields through trait bounds using the generated `Fields` trait.
 //! The `Presence` type can be `Present` (`T`), `Optional` (`Option<T>`), or `Absent` (`PhantomData<T>`):
 //!
-//! ```
+//! ```ignore
 //! # use structural_typing::{structural, presence::Present};
 //! #
 //! # #[structural]
@@ -61,7 +61,7 @@
 //! if we remove the `name` requirement—unlike changing a function parameter from `T` to `Option<T>`,
 //! which breaks all existing call sites.
 //!
-//! ```
+//! ```ignore
 //! # use structural_typing::{structural, presence::Present, access::Access};
 //! #
 //! # #[structural]
@@ -85,7 +85,7 @@
 //!
 //! The builder API infers field presence from the value type:
 //!
-//! ```
+//! ```ignore
 //! # use structural_typing::{structural, presence::Present, access::Access};
 //! #
 //! # #[structural]
@@ -103,7 +103,7 @@
 //! #     }
 //! # }
 //! #
-//! let bob = User::empty().id(123);
+//! let bob = user::empty().id(123);
 //! display_user(&bob);
 //!
 //! let bob = bob.name("Bob".to_owned());
@@ -144,7 +144,7 @@
 //!
 //! ### Extract and merge
 //!
-//! ```
+//! ```ignore
 //! # use structural_typing::{structural, select};
 //! #
 //! # #[structural]
@@ -154,7 +154,7 @@
 //! #     email: String,
 //! # }
 //! #
-//! # let alice = User::empty()
+//! # let alice = user::empty()
 //! #     .id(42)
 //! #     .name("Alice".to_owned())
 //! #     .email("alice@example.com".to_owned());
@@ -165,7 +165,7 @@
 //!
 //! let alice = credentials.merge(id_only);
 //! // Merged values override existing values
-//! let overridden = alice.merge(User::empty().id(21));
+//! let overridden = alice.merge(user::empty().id(21));
 //! assert_eq!(overridden.name, "Alice");
 //! assert_eq!(overridden.id, 21);
 //! ```

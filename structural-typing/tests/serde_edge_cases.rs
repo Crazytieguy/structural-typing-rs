@@ -13,7 +13,7 @@ struct DeserializeOnly {
 #[test]
 fn deserialize_only_struct() {
     let json = r#"{"name":"test","value":42}"#;
-    let result: DeserializeOnly = serde_json::from_str(json).unwrap();
+    let result: DeserializeOnly<deserialize_only::with::all> = serde_json::from_str(json).unwrap();
     assert_eq!(result.name, "test");
     assert_eq!(result.value, 42);
 }

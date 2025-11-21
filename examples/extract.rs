@@ -11,7 +11,7 @@ struct User {
 }
 
 fn main() {
-    let user = User::empty()
+    let user = user::empty()
         .name("Alice".to_owned())
         .email("alice@example.com".to_owned())
         .id(123);
@@ -22,7 +22,7 @@ fn main() {
     assert_eq!(remainder.id, 123);
 
     // Convert to Optional
-    let partial = User::empty().name("Bob".to_owned());
+    let partial = user::empty().name("Bob".to_owned());
     let (optional_creds, _) = partial.extract::<select!(user: name?, email?)>();
     assert_eq!(optional_creds.name, Some("Bob".to_owned()));
     assert_eq!(optional_creds.email, None);

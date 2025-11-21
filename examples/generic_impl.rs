@@ -20,7 +20,7 @@ impl<F: user::Fields<name = Present>> User<F> {
 }
 
 fn main() {
-    let user = User::empty().name("Alice".to_owned());
+    let user = user::empty().name("Alice".to_owned());
     assert_eq!(user.greet(), "Hello, Alice!");
 
     let user = user.email("alice@example.com".to_owned());

@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Attribute, Ident};
 
-use crate::codegen::generics_utils::impl_generics_with_f;
+use crate::codegen::generics_utils::{impl_generics_with_f, type_args_with_f};
 use crate::parsing::StructInfo;
 
 pub fn generate(info: &StructInfo) -> syn::Result<(Option<TokenStream>, Option<TokenStream>)> {
@@ -143,6 +143,7 @@ fn generate_try_from_impl(info: &StructInfo) -> syn::Result<TokenStream> {
     let (impl_generics, user_type_args) = impl_generics_with_f(&info.generics, module_name);
     let (impl_generics, _, where_clause) = impl_generics.split_for_impl();
     let (_, user_ty_generics, _) = info.generics.split_for_impl();
+    let impl_type_args = type_args_with_f(&info.generics, &user_type_args, quote! { F });
 
     let field_conversions = info.fields.iter().map(|field| {
         let field_name = &field.name;
@@ -165,7 +166,7 @@ fn generate_try_from_impl(info: &StructInfo) -> syn::Result<TokenStream> {
     });
 
     Ok(quote! {
-        impl #impl_generics ::core::convert::TryFrom<#module_name::#helper_name #user_ty_generics> for #name<#(#user_type_args,)* F>
+        impl #impl_generics ::core::convert::TryFrom<#module_name::#helper_name #user_ty_generics> for #name #impl_type_args
         #where_clause
         where
             #(#where_bounds),*
