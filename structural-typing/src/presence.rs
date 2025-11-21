@@ -22,7 +22,8 @@ pub trait Presence {
         + Extract<PhantomData<T>, T>
         + Extract<Option<T>, T>
         + Extract<Self::Output<T>, T>
-        + TryExtract<Option<T>, T>;
+        + TryExtract<Option<T>, T>
+        + InferPresence<T, Presence = Self>;
 
     /// Merge two values, preferring the first if present.
     fn or<T, Other: Presence>(

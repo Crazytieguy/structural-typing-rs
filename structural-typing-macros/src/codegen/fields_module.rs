@@ -208,6 +208,18 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
         >;
     };
 
+    let canonical_fields: Vec<_> = field_names
+        .iter()
+        .map(|name| quote! { F::#name })
+        .collect();
+
+    let canonical_type = quote! {
+        /// Convert a Fields trait bound to its canonical FieldSet representation.
+        pub type Canonical<F: Fields> = FieldSet<
+            #(#canonical_fields),*
+        >;
+    };
+
     quote! {
         #vis mod #module_name {
             use super::*;
@@ -246,6 +258,8 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
             >;
 
             #remainder_type
+
+            #canonical_type
 
             #with_modules
         }
