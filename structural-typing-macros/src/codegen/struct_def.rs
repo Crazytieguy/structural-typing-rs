@@ -11,7 +11,8 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     let other_attrs = &info.other_attrs;
 
     let mut combined_generics = info.generics.clone();
-    let f_param: syn::GenericParam = syn::parse_quote!(F: #module_name::Fields = #module_name::with::all);
+    let f_param: syn::GenericParam =
+        syn::parse_quote!(F: #module_name::Fields = #module_name::with::all);
     combined_generics.params.push(f_param);
 
     let params = &combined_generics.params;

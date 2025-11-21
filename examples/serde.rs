@@ -1,7 +1,7 @@
 //! Serialization with different field states.
 
 use serde::{Deserialize, Serialize};
-use structural_typing::{structural, select};
+use structural_typing::{select, structural};
 
 #[structural]
 #[derive(Serialize, Deserialize)]

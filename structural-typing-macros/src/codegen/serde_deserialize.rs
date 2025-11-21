@@ -116,10 +116,14 @@ fn generate_helper_struct(info: &StructInfo) -> TokenStream {
 
     let preserved_struct_attrs = filter_container_serde_attrs(&info.other_attrs);
 
-    let field_types: Vec<_> = info.fields.iter().map(|field| {
-        let ty = &field.ty;
-        quote! { Option<#ty> }
-    }).collect();
+    let field_types: Vec<_> = info
+        .fields
+        .iter()
+        .map(|field| {
+            let ty = &field.ty;
+            quote! { Option<#ty> }
+        })
+        .collect();
 
     quote! {
         #[::derive_where::derive_where(Deserialize; #(#field_types),*)]
@@ -184,10 +188,7 @@ fn generate_try_from_impl(info: &StructInfo) -> syn::Result<TokenStream> {
 }
 
 fn helper_struct_name(struct_name: &Ident) -> Ident {
-    Ident::new(
-        &format!("__{}Deserialize", struct_name),
-        struct_name.span(),
-    )
+    Ident::new(&format!("__{}Deserialize", struct_name), struct_name.span())
 }
 
 pub fn helper_path(module_name: &Ident, struct_name: &Ident, generics: &syn::Generics) -> String {
@@ -196,13 +197,15 @@ pub fn helper_path(module_name: &Ident, struct_name: &Ident, generics: &syn::Gen
     if generics.params.is_empty() {
         format!("{}::{}", module_name, helper_name)
     } else {
-        let params: Vec<String> = generics.params.iter().map(|param| {
-            match param {
+        let params: Vec<String> = generics
+            .params
+            .iter()
+            .map(|param| match param {
                 syn::GenericParam::Type(type_param) => type_param.ident.to_string(),
                 syn::GenericParam::Lifetime(lifetime_param) => lifetime_param.lifetime.to_string(),
                 syn::GenericParam::Const(const_param) => const_param.ident.to_string(),
-            }
-        }).collect();
+            })
+            .collect();
         format!("{}::{}<{}>", module_name, helper_name, params.join(", "))
     }
 }
@@ -219,9 +222,7 @@ fn filter_deserialize_attrs(attrs: &[Attribute]) -> Vec<Attribute> {
             let _ = attr.parse_nested_meta(|meta| {
                 if let Some(ident) = meta.path.get_ident() {
                     let ident_str = ident.to_string();
-                    if ident_str == "skip_serializing"
-                        || ident_str == "serialize_with"
-                    {
+                    if ident_str == "skip_serializing" || ident_str == "serialize_with" {
                         should_keep = false;
                     }
                 }

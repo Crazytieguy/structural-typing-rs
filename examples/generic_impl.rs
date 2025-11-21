@@ -1,6 +1,6 @@
 //! Generic impls with conditional behavior.
 
-use structural_typing::{presence::Present, structural};
+use structural_typing::{access::Access, presence::Present, structural};
 
 #[structural]
 struct User {
@@ -11,7 +11,7 @@ struct User {
 // Requires name, behavior changes based on email presence
 impl<F: user::Fields<name = Present>> User<F> {
     fn greet(&self) -> String {
-        if let Some(email) = self.get_email() {
+        if let Some(email) = self.email.get() {
             format!("Hello, {} <{}>!", self.name, email)
         } else {
             format!("Hello, {}!", self.name)

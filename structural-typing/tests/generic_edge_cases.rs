@@ -1,4 +1,4 @@
-use structural_typing::{structural, select};
+use structural_typing::{select, structural};
 
 // Test 1: Multiple generic parameters
 #[structural]
@@ -20,8 +20,7 @@ fn multiple_generics_basic() {
 
 #[test]
 fn multiple_generics_partial() {
-    let partial = Pair::<String, i32, _>::empty()
-        .first("world".to_owned());
+    let partial = Pair::<String, i32, _>::empty().first("world".to_owned());
 
     assert_eq!(partial.first, "world");
 }
@@ -35,8 +34,7 @@ struct Bounded<T> {
 
 #[test]
 fn generic_with_bounds() {
-    let bounded = Bounded::<String, _>::empty()
-        .value("test".to_owned());
+    let bounded = Bounded::<String, _>::empty().value("test".to_owned());
 
     assert_eq!(bounded.value, "test");
 }
@@ -80,8 +78,7 @@ struct WithLifetime<'a> {
 #[test]
 fn generic_lifetime() {
     let s = String::from("hello");
-    let with_lifetime = WithLifetime::<'_, _>::empty()
-        .data(s.as_str());
+    let with_lifetime = WithLifetime::<'_, _>::empty().data(s.as_str());
 
     assert_eq!(with_lifetime.data, "hello");
 }
@@ -95,8 +92,7 @@ struct FixedArray<const N: usize> {
 
 #[test]
 fn const_generic() {
-    let arr = FixedArray::<3, _>::empty()
-        .data([1, 2, 3]);
+    let arr = FixedArray::<3, _>::empty().data([1, 2, 3]);
 
     assert_eq!(arr.data, [1, 2, 3]);
 }
@@ -113,8 +109,7 @@ where
 
 #[test]
 fn complex_where_clause() {
-    let complex = Complex::<String, _>::empty()
-        .value("test".to_owned());
+    let complex = Complex::<String, _>::empty().value("test".to_owned());
 
     assert_eq!(complex.value, "test");
 }
@@ -122,10 +117,8 @@ fn complex_where_clause() {
 // Test 7: Multiple generics with merge
 #[test]
 fn multiple_generics_merge() {
-    let first_part = Pair::<String, i32, _>::empty()
-        .first("merged".to_owned());
-    let second_part = Pair::<String, i32, _>::empty()
-        .second(99);
+    let first_part = Pair::<String, i32, _>::empty().first("merged".to_owned());
+    let second_part = Pair::<String, i32, _>::empty().second(99);
 
     let merged = first_part.merge(second_part);
 

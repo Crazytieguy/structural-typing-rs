@@ -87,33 +87,20 @@ struct User {
     email: String,
 }
 
+fn insert_user<F: user::Fields<email = Present>>(
+    user: User<F>
+) -> User<select!(user: id, ..F)> {
+    // Insert to database, get generated ID
+    user.id(42)
+}
+
 let json = r#"{"name": "Alice", "email": "alice@example.com"}"#;
 // name optional, email present, id absent
-let alice: User<select!(user: name?, email)> = serde_json::from_str(json)?;
+let req: User<select!(user: name?, email)> = serde_json::from_str(json)?;
 
-let response = alice.id(42);
+let response = insert_user(req);
 let json = serde_json::to_string(&response)?;
 // => {"id":42, "name": "Alice", "email": "alice@example.com"}
-```
-
-### Advanced select! syntax
-
-The `select!` macro supports additional syntax for more control:
-
-```rust
-// Explicit Absent fields
-type PartialUser = select!(user: name, email, id-);  // id is explicitly Absent
-
-// All fields Absent
-type EmptyUser = select!(user: all-);
-
-// Custom presence types
-type CustomUser = select!(user: name<Optional>, id);
-
-// Spread operator for generic composition
-fn add_field<F: user::Fields>(base: User<F>) -> User<select!(user: email, ...F)> {
-    base.email("email@example.com".to_owned())
-}
 ```
 
 ### Extract and merge
@@ -121,17 +108,12 @@ fn add_field<F: user::Fields>(base: User<F>) -> User<select!(user: email, ...F)>
 ```rust
 use structural_typing::select;
 
-// Extract name and email, get back credentials and remainder with just id
 let (credentials, id_only) = alice.extract::<select!(user: name, email)>();
 assert_eq!(credentials.name, "Alice");
 assert_eq!(id_only.id, 42);
-```
 
-Merge instances:
-
-```rust
 let alice = credentials.merge(id_only);
-// merged values override existing values
+// Merged values override existing values
 let overridden = alice.merge(User::empty().id(21));
 assert_eq!(overridden.name, "Alice");
 assert_eq!(overridden.id, 21);

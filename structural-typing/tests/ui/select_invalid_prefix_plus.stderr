@@ -1,7 +1,11 @@
-error: Invalid prefix '+' in select!. Use 'field' for Present, '?field' for Optional, '-field' for Absent, or '<Type>field' for custom presence
- --> tests/ui/select_invalid_prefix_plus.rs:9:20
+error: no rules expected `+`
+ --> tests/ui/select_invalid_prefix_plus.rs:9:34
   |
 9 |     type Invalid = select!(user: +name);
-  |                    ^^^^^^^^^^^^^^^^^^^^
+  |                                  ^ no rules expected this token in macro call
   |
-  = note: this error originates in the macro `select` (in Nightly builds, run with -Z macro-backtrace for more info)
+note: while trying to match `..`
+ --> src/lib.rs
+  |
+  |     ($($module:ident)::+ : .. $spread:ty) => {
+  |                            ^^

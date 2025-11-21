@@ -1,6 +1,8 @@
 use heck::ToSnakeCase;
 use proc_macro2::Span;
-use syn::{Attribute, Data, DeriveInput, Fields, Generics, Ident, Type, Visibility, spanned::Spanned};
+use syn::{
+    Attribute, Data, DeriveInput, Fields, Generics, Ident, Type, Visibility, spanned::Spanned,
+};
 
 #[derive(Debug)]
 pub struct StructInfo {

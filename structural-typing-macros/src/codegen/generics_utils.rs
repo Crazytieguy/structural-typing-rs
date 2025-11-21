@@ -3,7 +3,9 @@ use quote::quote;
 use syn::{GenericParam, Generics, Ident};
 
 /// Extracts just the identifiers from generic parameters for use in type arguments
-pub fn extract_type_param_idents(params: &syn::punctuated::Punctuated<GenericParam, syn::token::Comma>) -> Vec<TokenStream> {
+pub fn extract_type_param_idents(
+    params: &syn::punctuated::Punctuated<GenericParam, syn::token::Comma>,
+) -> Vec<TokenStream> {
     params
         .iter()
         .map(|param| match param {
@@ -25,7 +27,10 @@ pub fn extract_type_param_idents(params: &syn::punctuated::Punctuated<GenericPar
 
 /// Creates impl generics by adding F parameter after lifetimes but before other params
 /// Also returns user type args for convenience
-pub fn impl_generics_with_f(user_generics: &Generics, module_name: &Ident) -> (Generics, Vec<TokenStream>) {
+pub fn impl_generics_with_f(
+    user_generics: &Generics,
+    module_name: &Ident,
+) -> (Generics, Vec<TokenStream>) {
     let mut impl_generics = user_generics.clone();
     let f_param: GenericParam = syn::parse_quote!(F: #module_name::Fields);
 

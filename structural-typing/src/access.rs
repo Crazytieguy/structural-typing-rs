@@ -29,7 +29,9 @@ pub trait Access<T>: InferPresence<T> {
     ///
     /// Returns `Err` with the original `Option<T>` if the conversion cannot be performed.
     #[allow(clippy::type_complexity)]
-    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>>
+    fn try_from_option(
+        value: Option<T>,
+    ) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>>
     where
         Self: Sized;
 }
@@ -63,7 +65,9 @@ impl<T> Access<T> for PhantomData<T> {
     }
 
     #[inline]
-    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
+    fn try_from_option(
+        value: Option<T>,
+    ) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
         Ok((PhantomData, value))
     }
 }
@@ -92,7 +96,9 @@ impl<T: Sized> Access<T> for T {
     }
 
     #[inline]
-    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
+    fn try_from_option(
+        value: Option<T>,
+    ) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
         match value {
             Some(v) => Ok((v, PhantomData)),
             None => Err(None),
@@ -124,7 +130,9 @@ impl<T> Access<T> for Option<T> {
     }
 
     #[inline]
-    fn try_from_option(value: Option<T>) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
+    fn try_from_option(
+        value: Option<T>,
+    ) -> Result<(Self, Self::RemainderFrom<Option<T>>), Option<T>> {
         Ok((value, PhantomData))
     }
 }

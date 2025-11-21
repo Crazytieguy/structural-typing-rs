@@ -2,7 +2,10 @@
 
 use core::marker::PhantomData;
 
-use crate::{access::Access, extract::{Extract, TryExtract}};
+use crate::{
+    access::Access,
+    extract::{Extract, TryExtract},
+};
 
 /// Marker indicating a field is present with a concrete value.
 pub struct Present;

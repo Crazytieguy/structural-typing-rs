@@ -7,5 +7,5 @@ error: no rules expected `name`
 note: while trying to match `:`
  --> src/lib.rs
   |
-  |     ($($module:ident)::+ : + $field:ident $($rest:tt)*) => {
+  |     ($($module:ident)::+ : .. $spread:ty) => {
   |                          ^

@@ -331,8 +331,11 @@ fn select_with_trailing_comma() {
 
 #[test]
 fn generic_extract_to_absent() {
-    fn remove_email<F: test_struct::Fields>(data: TestStruct<F>) -> TestStruct<test_struct::with::email<::structural_typing::presence::Absent, F>> {
-        let (extracted, _) = data.extract::<test_struct::with::email<::structural_typing::presence::Absent, F>>();
+    fn remove_email<F: test_struct::Fields>(
+        data: TestStruct<F>,
+    ) -> TestStruct<test_struct::with::email<::structural_typing::presence::Absent, F>> {
+        let (extracted, _) =
+            data.extract::<test_struct::with::email<::structural_typing::presence::Absent, F>>();
         extracted
     }
 
@@ -404,7 +407,7 @@ fn select_spread_operator() {
     fn add_id_field<F: test_struct::Fields>(
         base: TestStruct<F>,
         id: u64,
-    ) -> TestStruct<select!(test_struct: id, ...F)> {
+    ) -> TestStruct<select!(test_struct: id, ..F)> {
         base.id(id)
     }
 
@@ -416,11 +419,9 @@ fn select_spread_operator() {
 
 #[test]
 fn select_spread_with_optional() {
-    type OptionalIdWithSpread<F> = select!(test_struct: id?, ...F);
+    type OptionalIdWithSpread<F> = select!(test_struct: id?, ..F);
     let val: TestStruct<OptionalIdWithSpread<select!(test_struct: name)>> =
-        TestStruct::empty()
-            .name("Bob".to_owned())
-            .id(Some(123));
+        TestStruct::empty().name("Bob".to_owned()).id(Some(123));
     assert_eq!(val.name, "Bob");
     assert_eq!(val.id, Some(123));
 }

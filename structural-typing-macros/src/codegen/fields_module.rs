@@ -139,7 +139,9 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
     let remainder_params = if info.generics.params.is_empty() {
         quote! { F1, F2 }
     } else {
-        let (lifetimes, others): (Vec<_>, Vec<_>) = info.generics.params
+        let (lifetimes, others): (Vec<_>, Vec<_>) = info
+            .generics
+            .params
             .iter()
             .partition(|p| matches!(p, syn::GenericParam::Lifetime(_)));
         quote! { #(#lifetimes,)* F1, F2, #(#others),* }
@@ -153,10 +155,7 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
         >;
     };
 
-    let canonical_fields: Vec<_> = field_names
-        .iter()
-        .map(|name| quote! { F::#name })
-        .collect();
+    let canonical_fields: Vec<_> = field_names.iter().map(|name| quote! { F::#name }).collect();
 
     let canonical_type = quote! {
         /// Convert a Fields trait bound to its canonical FieldSet representation.

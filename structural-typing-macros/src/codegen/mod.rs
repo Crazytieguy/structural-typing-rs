@@ -1,10 +1,10 @@
 mod builders;
 mod constructors;
+mod extract;
 mod fields_module;
 mod generics_utils;
 mod getters;
 mod merge;
-mod extract;
 mod serde_deserialize;
 mod struct_def;
 

@@ -126,11 +126,18 @@
 //!     email: String,
 //! }
 //!
+//! fn insert_user<F: user::Fields<email = Present>>(
+//!     user: User<F>
+//! ) -> User<select!(user: id, ..F)> {
+//!     // Insert to database, get generated ID
+//!     user.id(42)
+//! }
+//!
 //! let json = r#"{"name": "Alice", "email": "alice@example.com"}"#;
 //! // name optional, email present, id absent
-//! let alice: User<select!(user: ?name, email)> = serde_json::from_str(json)?;
+//! let req: User<select!(user: name?, email)> = serde_json::from_str(json)?;
 //!
-//! let response = alice.id(42);
+//! let response = insert_user(req);
 //! let json = serde_json::to_string(&response)?;
 //! // => {"id":42, "name": "Alice", "email": "alice@example.com"}
 //! ```
@@ -152,31 +159,12 @@
 //! #     .name("Alice".to_owned())
 //! #     .email("alice@example.com".to_owned());
 //! #
-//! // Extract name and email, get back credentials and remainder with just id
 //! let (credentials, id_only) = alice.extract::<select!(user: name, email)>();
 //! assert_eq!(credentials.name, "Alice");
 //! assert_eq!(id_only.id, 42);
-//! ```
 //!
-//! Merge instances:
-//!
-//! ```
-//! # use structural_typing::structural;
-//! #
-//! # #[structural]
-//! # struct User {
-//! #     id: u32,
-//! #     name: String,
-//! #     email: String,
-//! # }
-//! #
-//! # let credentials = User::empty()
-//! #     .name("Alice".to_owned())
-//! #     .email("alice@example.com".to_owned());
-//! # let id_only = User::empty().id(42);
-//! #
 //! let alice = credentials.merge(id_only);
-//! // merged values override existing values
+//! // Merged values override existing values
 //! let overridden = alice.merge(User::empty().id(21));
 //! assert_eq!(overridden.name, "Alice");
 //! assert_eq!(overridden.id, 21);
@@ -235,10 +223,10 @@
 
 /// Runtime field access trait for checking presence and getting values.
 pub mod access;
-/// Type-level presence markers and traits for field state tracking.
-pub mod presence;
 /// Traits for splitting structs into selected fields and remainder.
 pub mod extract;
+/// Type-level presence markers and traits for field state tracking.
+pub mod presence;
 
 pub use structural_typing_macros::structural;
 
@@ -251,20 +239,20 @@ pub use structural_typing_macros::structural;
 /// - `select!(module: field<Type>)` - field has custom presence type
 /// - `select!(module: all?)` - all fields Optional
 /// - `select!(module: all-)` - all fields Absent
-/// - `select!(module: field, ...F)` - field is Present, remaining fields from F
+/// - `select!(module: field, ..F)` - field is Present, remaining fields from F
 /// - Multiple fields compose: `select!(module: field1, field2?)` expands to `module::with::field1<Present, module::with::field2<Optional>>`
 ///
 /// # Examples
 /// ```ignore
 /// type Create = select!(user: name, email);
 /// type Update = select!(user: name?, email?);
-/// type WithId<F: user::Fields> = select!(user: id, ...F);
+/// type WithId<F: user::Fields> = select!(user: id, ..F);
 /// fn create_user(user: User<Create>) {...}
 /// ```
 #[macro_export]
 macro_rules! select {
     // Error: spread without fields
-    ($($module:ident)::+ : ... $spread:ty) => {
+    ($($module:ident)::+ : .. $spread:ty) => {
         compile_error!("select! requires at least one explicit field before spread operator")
     };
 
@@ -274,22 +262,22 @@ macro_rules! select {
     };
 
     // Single field with spread: Present
-    ($($module:ident)::+ : $field:ident, ... $spread:ty) => {
+    ($($module:ident)::+ : $field:ident, .. $spread:ty) => {
         $($module)::+::with::$field<::structural_typing::presence::Present, $spread>
     };
 
     // Single field with spread: Optional
-    ($($module:ident)::+ : $field:ident ?, ... $spread:ty) => {
+    ($($module:ident)::+ : $field:ident ?, .. $spread:ty) => {
         $($module)::+::with::$field<::structural_typing::presence::Optional, $spread>
     };
 
     // Single field with spread: Absent
-    ($($module:ident)::+ : $field:ident -, ... $spread:ty) => {
+    ($($module:ident)::+ : $field:ident -, .. $spread:ty) => {
         $($module)::+::with::$field<::structural_typing::presence::Absent, $spread>
     };
 
     // Single field with spread: Custom type
-    ($($module:ident)::+ : $field:ident < $presence:ty >, ... $spread:ty) => {
+    ($($module:ident)::+ : $field:ident < $presence:ty >, .. $spread:ty) => {
         $($module)::+::with::$field<$presence, $spread>
     };
 

@@ -38,7 +38,7 @@ async fn create_todo(
 
 #[derive(Serialize)]
 struct ListTodos {
-    todos: Vec<Todo>
+    todos: Vec<Todo>,
 }
 
 async fn list_todos(State(pool): State<SqlitePool>) -> Result<Json<ListTodos>, StatusCode> {
@@ -47,21 +47,17 @@ async fn list_todos(State(pool): State<SqlitePool>) -> Result<Json<ListTodos>, S
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json( ListTodos { todos } ))
+    Ok(Json(ListTodos { todos }))
 }
 
 async fn get_todo(
     State(pool): State<SqlitePool>,
     Path(Todo { id, .. }): Path<TodoId>,
 ) -> Result<Json<Todo>, StatusCode> {
-    let todo = sqlx::query_as!(
-        Todo,
-        "SELECT * FROM todos WHERE id = ?",
-        id
-    )
-    .fetch_one(&pool)
-    .await
-    .map_err(|_| StatusCode::NOT_FOUND)?;
+    let todo = sqlx::query_as!(Todo, "SELECT * FROM todos WHERE id = ?", id)
+        .fetch_one(&pool)
+        .await
+        .map_err(|_| StatusCode::NOT_FOUND)?;
 
     Ok(Json(todo))
 }
