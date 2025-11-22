@@ -12,7 +12,7 @@ This design is inspired by Rich Hickey's [Maybe Not](https://www.youtube.com/wat
 
 ```toml
 [dependencies]
-structural-typing = "0.1.7"
+structural-typing = "0.1.8"
 derive-where = "1.6"  # For deriving traits on structural types
 ```
 
