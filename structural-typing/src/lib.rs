@@ -202,6 +202,43 @@
 //! }
 //! ```
 //!
+//! #### Nested setters
+//!
+//! Use `#[nested(...)]` to generate convenient setters for nested struct fields:
+//!
+//! ```ignore
+//! use structural_typing::{structural, select};
+//!
+//! #[structural]
+//! struct User<A: address::Fields = select!(address: all-)> {
+//!     id: u32,
+//!     name: String,
+//!     #[nested(address: street, city, zip)]
+//!     address: Address<A>,
+//! }
+//!
+//! // Setters are generated with field_nested_field naming
+//! let user = user::empty()
+//!     .id(1)
+//!     .name("Alice".to_owned())
+//!     .address(address::empty())
+//!     .address_city("Seattle".to_owned())
+//!     .address_street("Main St".to_owned());
+//!
+//! assert_eq!(user.address.city, "Seattle");
+//! assert_eq!(user.address.street, "Main St");
+//! ```
+//!
+//! Nested setters work by extracting the nested field, updating it, and merging back—preserving all
+//! other fields' presence states. This makes them compatible with `extract()` and other structural operations.
+//!
+//! **Limitations**:
+//! - `#[nested]` requires the parent struct to have at least 2 fields because the
+//!   implementation uses the spread operator, which needs other fields to preserve. Single-field parent
+//!   structs will produce a compile error.
+//! - Merge operations between instances with different nested field presence states are not supported.
+//!   The nested struct's generic parameter must match for merge to work.
+//!
 //! See the [examples](https://github.com/Crazytieguy/structural-typing-rs/tree/master/examples)
 //! directory for more comprehensive usage.
 //!

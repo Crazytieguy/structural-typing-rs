@@ -3,6 +3,7 @@ mod extract;
 mod fields_module;
 mod generics_utils;
 mod merge;
+mod nested_setters;
 mod serde_deserialize;
 mod struct_def;
 mod type_subst;
@@ -20,6 +21,7 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
     let fields_mod = fields_module::generate(&info, serde_helper);
     let struct_def = struct_def::generate(&info);
     let builders = builders::generate(&info);
+    let nested_setters = nested_setters::generate(&info);
     let merge = merge::generate(&info);
     let extract = extract::generate(&info);
 
@@ -31,6 +33,8 @@ pub fn generate(input: DeriveInput) -> syn::Result<TokenStream> {
         #struct_def
 
         #builders
+
+        #nested_setters
 
         #merge
 

@@ -84,7 +84,7 @@ fn generic_lifetime() {
     assert_eq!(with_lifetime.data, "hello");
 }
 
-// Test 5: Const generic (if edition 2024 supports it well)
+// Test 5: Const generic
 #[structural]
 #[derive(Debug)]
 struct FixedArray<const N: usize> {

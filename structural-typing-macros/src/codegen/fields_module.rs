@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, Type};
+use syn::{Expr, GenericArgument, Ident, PathArguments, Type};
 
 use crate::codegen::generics_utils;
 use crate::parsing::StructInfo;
@@ -103,6 +103,209 @@ fn generate_empty_constructor(info: &StructInfo) -> TokenStream {
     }
 }
 
+fn extract_generic_idents_from_type(
+    ty: &Type,
+    user_generics: &[String],
+    generic_params: &syn::punctuated::Punctuated<syn::GenericParam, syn::token::Comma>,
+) -> Vec<TokenStream> {
+    let mut found_idents = Vec::new();
+    visit_type_for_generics(ty, user_generics, &mut found_idents);
+
+    // Map found identifiers back to their full GenericParam declarations
+    // Preserve declaration order by iterating through generic_params in order
+    let mut result = Vec::new();
+    let found_strs: std::collections::HashSet<String> =
+        found_idents.iter().map(|t| t.to_string()).collect();
+
+    for param in generic_params {
+        let (param_str, token) = match param {
+            syn::GenericParam::Type(tp) => {
+                let ident = &tp.ident;
+                (ident.to_string(), quote! { #ident })
+            }
+            syn::GenericParam::Lifetime(lp) => {
+                let lifetime = &lp.lifetime;
+                (lifetime.to_string(), quote! { #lifetime })
+            }
+            syn::GenericParam::Const(cp) => {
+                let ident = &cp.ident;
+                let ty = &cp.ty;
+                (ident.to_string(), quote! { const #ident: #ty })
+            }
+        };
+
+        // Use exact match instead of substring match to avoid false positives
+        if found_strs.contains(&param_str) {
+            result.push(token);
+        }
+    }
+    result
+}
+
+fn visit_type_for_generics(
+    ty: &Type,
+    user_generics: &[String],
+    generics: &mut Vec<TokenStream>,
+) {
+    match ty {
+        Type::Path(type_path) => {
+            if let Some(ident) = type_path.path.get_ident() {
+                let ident_str = ident.to_string();
+                if user_generics.contains(&ident_str) {
+                    let token = quote! { #ident };
+                    if !generics.iter().any(|g| g.to_string() == token.to_string()) {
+                        generics.push(token);
+                    }
+                }
+            }
+
+            for segment in &type_path.path.segments {
+                if let PathArguments::AngleBracketed(args) = &segment.arguments {
+                    for arg in &args.args {
+                        match arg {
+                            GenericArgument::Type(ty) => {
+                                visit_type_for_generics(ty, user_generics, generics);
+                            }
+                            GenericArgument::Lifetime(lifetime) => {
+                                let lifetime_str = lifetime.ident.to_string();
+                                if user_generics.contains(&lifetime_str) {
+                                    let token = quote! { #lifetime };
+                                    if !generics
+                                        .iter()
+                                        .any(|g| g.to_string() == token.to_string())
+                                    {
+                                        generics.push(token);
+                                    }
+                                }
+                            }
+                            GenericArgument::Const(expr) => {
+                                visit_expr_for_generics(expr, user_generics, generics);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        Type::Reference(type_ref) => {
+            // Check for explicit lifetime in reference
+            if let Some(lifetime) = &type_ref.lifetime {
+                let lifetime_str = lifetime.ident.to_string();
+                if user_generics.contains(&lifetime_str) {
+                    let token = quote! { #lifetime };
+                    if !generics.iter().any(|g| g.to_string() == token.to_string()) {
+                        generics.push(token);
+                    }
+                }
+            }
+            visit_type_for_generics(&type_ref.elem, user_generics, generics);
+        }
+        Type::Ptr(type_ptr) => {
+            visit_type_for_generics(&type_ptr.elem, user_generics, generics);
+        }
+        Type::Array(type_array) => {
+            visit_type_for_generics(&type_array.elem, user_generics, generics);
+            // Check if the array length uses a const generic
+            visit_expr_for_generics(&type_array.len, user_generics, generics);
+        }
+        Type::Slice(type_slice) => {
+            visit_type_for_generics(&type_slice.elem, user_generics, generics);
+        }
+        Type::Tuple(type_tuple) => {
+            for elem in &type_tuple.elems {
+                visit_type_for_generics(elem, user_generics, generics);
+            }
+        }
+        Type::Paren(type_paren) => {
+            visit_type_for_generics(&type_paren.elem, user_generics, generics);
+        }
+        _ => {}
+    }
+}
+
+fn visit_expr_for_generics(
+    expr: &Expr,
+    user_generics: &[String],
+    generics: &mut Vec<TokenStream>,
+) {
+    match expr {
+        Expr::Path(expr_path) => {
+            if let Some(ident) = expr_path.path.get_ident() {
+                let ident_str = ident.to_string();
+                if user_generics.contains(&ident_str) {
+                    // Store just the identifier token for const generics
+                    let token = quote! { #ident };
+                    if !generics.iter().any(|g| g.to_string() == token.to_string()) {
+                        generics.push(token);
+                    }
+                }
+            }
+        }
+        Expr::Binary(binary) => {
+            // Handle binary expressions like N + M, N * 2
+            visit_expr_for_generics(&binary.left, user_generics, generics);
+            visit_expr_for_generics(&binary.right, user_generics, generics);
+        }
+        Expr::Block(block) => {
+            // Handle const blocks like { N * 2 }
+            if let Some(syn::Stmt::Expr(expr, _)) = block.block.stmts.last() {
+                visit_expr_for_generics(expr, user_generics, generics);
+            }
+        }
+        _ => {
+            // For other expression types, we don't extract generics
+            // This is conservative but avoids false positives
+        }
+    }
+}
+
+fn generate_type_of_module(info: &StructInfo) -> TokenStream {
+    let user_generics: Vec<String> = info
+        .generics
+        .params
+        .iter()
+        .map(|param| match param {
+            syn::GenericParam::Type(type_param) => type_param.ident.to_string(),
+            syn::GenericParam::Lifetime(lifetime_param) => {
+                lifetime_param.lifetime.ident.to_string()
+            }
+            syn::GenericParam::Const(const_param) => const_param.ident.to_string(),
+        })
+        .collect();
+
+    let field_type_aliases: Vec<_> = info
+        .fields
+        .iter()
+        .map(|field| {
+            let field_name = &field.name;
+            let field_ty = &field.ty;
+            let generics_in_field =
+                extract_generic_idents_from_type(field_ty, &user_generics, &info.generics.params);
+
+            if generics_in_field.is_empty() {
+                quote! {
+                    #[allow(non_camel_case_types)]
+                    pub type #field_name = #field_ty;
+                }
+            } else {
+                quote! {
+                    #[allow(non_camel_case_types)]
+                    pub type #field_name<#(#generics_in_field),*> = #field_ty;
+                }
+            }
+        })
+        .collect();
+
+    quote! {
+        /// Type aliases for field types.
+        pub mod type_of {
+            use super::*;
+
+            #(#field_type_aliases)*
+        }
+    }
+}
+
 fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
     let has_multiple_fields = field_names.len() > 1;
 
@@ -138,6 +341,10 @@ fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
                     > = FieldSet<#(#field_types),*>;
                 }
             } else {
+                // Single-field structs don't get F parameter since there are no other fields to spread.
+                // Attempting to use nested setters with single-field structs will fail at compile time
+                // with "type parameter F is never used" error when the select! macro tries to use
+                // with::field<P, F> - this is intentional and documents the limitation clearly.
                 quote! {
                     /// Parameterized field presence type alias.
                     #[allow(non_camel_case_types)]
@@ -174,6 +381,7 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
         generate_fieldset_parts(&field_names);
     let merge_fields = generate_merge_fields(&field_names);
     let remainder_fields = generate_remainder_fields(&field_names, &field_types);
+    let type_of_module = generate_type_of_module(info);
     let with_modules = generate_with_modules(&field_names);
     let empty_constructor = generate_empty_constructor(info);
 
@@ -245,6 +453,8 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
             #remainder_type
 
             #canonical_type
+
+            #type_of_module
 
             #with_modules
 

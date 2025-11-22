@@ -1,0 +1,5 @@
+error: duplicate nested field name 'data'
+  --> tests/ui/nested_duplicate_rejected.rs:12:27
+   |
+12 |     #[nested(inner: data, data)]
+   |                           ^^^^

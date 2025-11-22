@@ -1,0 +1,5 @@
+error: #[nested] attribute requires at least one field name after the module path
+  --> tests/ui/nested_empty_rejected.rs:11:20
+   |
+11 |     #[nested(inner:)]
+   |                    ^

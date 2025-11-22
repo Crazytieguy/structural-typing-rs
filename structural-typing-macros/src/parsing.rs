@@ -2,10 +2,63 @@ use heck::ToSnakeCase;
 use proc_macro2::Span;
 use std::collections::HashSet;
 use syn::{
-    Attribute, Data, DeriveInput, Fields, Generics, Ident, Type, Visibility, spanned::Spanned,
+    Attribute, Data, DeriveInput, Fields, Generics, Ident, Path, Type, Visibility, spanned::Spanned,
 };
 
 use crate::analysis;
+
+#[derive(Debug, Clone)]
+pub struct NestedFieldsInfo {
+    pub module_path: Path,
+    pub field_names: Vec<Ident>,
+}
+
+fn parse_nested_attribute(attrs: &[Attribute]) -> syn::Result<Option<NestedFieldsInfo>> {
+    use syn::Token;
+    use syn::punctuated::Punctuated;
+
+    for attr in attrs {
+        if attr.path().is_ident("nested") {
+            return attr.parse_args_with(|input: syn::parse::ParseStream| {
+                // Parse module path
+                let module_path: Path = input.parse()?;
+
+                // Parse colon
+                input.parse::<Token![:]>()?;
+
+                // Parse comma-separated field names
+                let field_idents = Punctuated::<Ident, Token![,]>::parse_terminated(input)?;
+
+                if field_idents.is_empty() {
+                    return Err(syn::Error::new(
+                        input.span(),
+                        "#[nested] attribute requires at least one field name after the module path",
+                    ));
+                }
+
+                // Check for duplicates
+                let mut seen = HashSet::new();
+                let mut field_names = Vec::new();
+
+                for ident in field_idents {
+                    if !seen.insert(ident.to_string()) {
+                        return Err(syn::Error::new_spanned(
+                            &ident,
+                            format!("duplicate nested field name '{}'", ident),
+                        ));
+                    }
+                    field_names.push(ident);
+                }
+
+                Ok(Some(NestedFieldsInfo {
+                    module_path,
+                    field_names,
+                }))
+            });
+        }
+    }
+    Ok(None)
+}
 
 #[derive(Debug)]
 pub struct StructInfo {
@@ -25,6 +78,7 @@ pub struct FieldInfo {
     pub ty: Type,
     pub vis: Visibility,
     pub attrs: Vec<Attribute>,
+    pub nested_fields: Option<NestedFieldsInfo>,
 }
 
 pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
@@ -45,7 +99,7 @@ pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
         ));
     };
 
-    let fields: Vec<FieldInfo> = fields_named
+    let fields: Result<Vec<FieldInfo>, syn::Error> = fields_named
         .named
         .into_iter()
         .map(|field| {
@@ -53,19 +107,34 @@ pub fn parse_struct(input: DeriveInput) -> syn::Result<StructInfo> {
             let ty = field.ty;
             let vis = field.vis;
             let attrs = field.attrs;
-            FieldInfo {
+            let nested_fields = parse_nested_attribute(&attrs)?;
+            Ok(FieldInfo {
                 name,
                 ty,
                 vis,
                 attrs,
-            }
+                nested_fields,
+            })
         })
         .collect();
+
+    let fields = fields?;
 
     if fields.is_empty() {
         return Err(syn::Error::new(
             span,
             "#[structural] requires at least one field",
+        ));
+    }
+
+    // Check for invalid nested annotations on single-field structs
+    if fields.len() == 1 && fields[0].nested_fields.is_some() {
+        return Err(syn::Error::new_spanned(
+            &fields[0].name,
+            "nested setters require at least 2 fields in the struct. \
+             Single-field structs cannot use #[nested] because there are no \
+             other fields to preserve with the spread operator. \
+             Consider adding another field or using regular setters instead.",
         ));
     }
 

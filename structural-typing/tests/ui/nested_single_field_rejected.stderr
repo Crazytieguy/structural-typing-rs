@@ -1,0 +1,5 @@
+error: expected `:`
+  --> tests/ui/nested_single_field_rejected.rs:10:18
+   |
+10 |     #[nested(data)]
+   |                  ^

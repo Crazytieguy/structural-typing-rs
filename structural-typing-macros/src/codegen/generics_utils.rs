@@ -98,9 +98,8 @@ pub fn non_defaulted_params(generics: &Generics) -> Vec<GenericParam> {
             } else {
                 break;
             }
-        } else {
-            break;
         }
+        // Lifetimes and const generics don't have defaults, so we continue
     }
 
     params.into_iter().take(first_default_idx).collect()
