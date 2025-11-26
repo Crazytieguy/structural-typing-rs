@@ -142,11 +142,7 @@ fn extract_generic_idents_from_type(
     result
 }
 
-fn visit_type_for_generics(
-    ty: &Type,
-    user_generics: &[String],
-    generics: &mut Vec<TokenStream>,
-) {
+fn visit_type_for_generics(ty: &Type, user_generics: &[String], generics: &mut Vec<TokenStream>) {
     match ty {
         Type::Path(type_path) => {
             if let Some(ident) = type_path.path.get_ident() {
@@ -170,9 +166,7 @@ fn visit_type_for_generics(
                                 let lifetime_str = lifetime.ident.to_string();
                                 if user_generics.contains(&lifetime_str) {
                                     let token = quote! { #lifetime };
-                                    if !generics
-                                        .iter()
-                                        .any(|g| g.to_string() == token.to_string())
+                                    if !generics.iter().any(|g| g.to_string() == token.to_string())
                                     {
                                         generics.push(token);
                                     }
@@ -223,11 +217,7 @@ fn visit_type_for_generics(
     }
 }
 
-fn visit_expr_for_generics(
-    expr: &Expr,
-    user_generics: &[String],
-    generics: &mut Vec<TokenStream>,
-) {
+fn visit_expr_for_generics(expr: &Expr, user_generics: &[String], generics: &mut Vec<TokenStream>) {
     match expr {
         Expr::Path(expr_path) => {
             if let Some(ident) = expr_path.path.get_ident() {
@@ -297,7 +287,10 @@ fn generate_type_of_module(info: &StructInfo) -> TokenStream {
         .collect();
 
     quote! {
-        /// Type aliases for field types.
+        /// Type aliases for accessing field types independent of presence state.
+        ///
+        /// Use these when you need to reference the underlying field type in generic code,
+        /// e.g., for function parameters or return types that work with field values directly.
         pub mod type_of {
             use super::*;
 
@@ -357,13 +350,16 @@ fn generate_with_modules(field_names: &[&Ident]) -> TokenStream {
     let all_fields: Vec<_> = std::iter::repeat_n(quote! { P }, field_names.len()).collect();
 
     quote! {
-        /// Type aliases for field presence combinations.
+        /// Type constructors for building field presence combinations.
+        ///
+        /// Each field has a type alias that sets its presence while inheriting others from a base.
+        /// Use these with the `select!` macro or directly for type annotations.
         pub mod with {
             use super::*;
 
             #(#field_type_aliases)*
 
-            /// All fields with the same presence state.
+            /// Sets all fields to the same presence state.
             #[allow(non_camel_case_types)]
             pub type all<P: Presence = ::structural_typing::presence::Present> = FieldSet<#(#all_fields),*>;
         }
@@ -397,7 +393,10 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
     };
 
     let remainder_type = quote! {
-        /// Remainder after extracting F2 from F1.
+        /// Computes the field presence state after extracting `F2` from `F1`.
+        ///
+        /// - Extracting to Present or Optional → remainder is Absent (value consumed)
+        /// - Extracting to Absent → remainder keeps F1's presence (nothing extracted)
         #[allow(type_alias_bounds)]
         pub type Remainder<#remainder_params> = FieldSet<
             #(#remainder_fields),*
@@ -407,7 +406,10 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
     let canonical_fields: Vec<_> = field_names.iter().map(|name| quote! { F::#name }).collect();
 
     let canonical_type = quote! {
-        /// Convert a Fields trait bound to its canonical FieldSet representation.
+        /// Converts a `Fields` trait bound to its concrete `FieldSet` representation.
+        ///
+        /// Use this when you need a concrete type alias from a generic `F: Fields` bound,
+        /// e.g., to store in a struct field or name the type explicitly.
         pub type Canonical<F: Fields> = FieldSet<
             #(#canonical_fields),*
         >;
@@ -425,13 +427,19 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
                 pub trait Sealed {}
             }
 
-            /// Trait representing field presence states.
+            /// Trait for constraining field presence states in generic code.
+            ///
+            /// Use this in trait bounds to require specific fields:
+            /// `fn foo<F: Fields<name = Present, id = Present>>(...)`.
             #[allow(non_camel_case_types)]
             pub trait Fields: sealed::Sealed {
                 #(#field_type_assocs)*
             }
 
-            /// Type-level representation of field presence states.
+            /// Concrete type representing a specific combination of field presence states.
+            ///
+            /// Each type parameter corresponds to a field's presence (Present, Optional, or Absent).
+            /// Use `with::` aliases or `select!` macro instead of constructing this directly.
             #[allow(non_camel_case_types)]
             pub struct FieldSet<#(#fieldset_params),*>(
                 PhantomData<(#(#fieldset_phantom_types),*)>,
@@ -445,7 +453,9 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
                 #(#fieldset_assocs)*
             }
 
-            /// Merge two field sets (F2 takes precedence over F1).
+            /// Computes the result of merging two field sets (F2 takes precedence over F1).
+            ///
+            /// Present in either → Present. Optional + Absent → Optional.
             pub type Merge<F1, F2> = FieldSet<
                 #(#merge_fields),*
             >;

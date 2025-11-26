@@ -141,6 +141,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     quote! {
         impl #impl_generics #struct_name #impl_type_args #where_clause {
             /// Extracts selected fields and remainder. Always succeeds.
+            #[must_use]
             pub fn extract<F2: #module_name::Fields>(self) -> (#struct_name #f2_type_args, #struct_name #remainder_type_args_full)
             where
                 #(#extract_where_clauses),*
@@ -155,6 +156,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
             }
 
             /// Extracts selected fields and remainder. Returns `Err(self)` if any Optional field is None but target needs Present.
+            #[must_use]
             pub fn try_extract<F2: #module_name::Fields>(self) -> Result<(#struct_name #f2_type_args, #struct_name #remainder_type_args_full), Self>
             where
                 #(#try_extract_where_clauses),*

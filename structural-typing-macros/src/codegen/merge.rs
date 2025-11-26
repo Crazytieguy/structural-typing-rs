@@ -28,6 +28,7 @@ pub fn generate(info: &StructInfo) -> TokenStream {
     quote! {
         impl #impl_generics #struct_name #impl_type_args #where_clause {
             /// Combines two instances, preferring `other`'s fields when both are present.
+            #[must_use]
             pub fn merge<F2: #module_name::Fields>(self, other: #struct_name #f2_type_args) -> #struct_name #merge_type_args {
                 #struct_name {
                     #(#field_merges),*

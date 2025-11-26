@@ -14,7 +14,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! structural-typing = "0.1.8"
+//! structural-typing = "0.1.9"
 //! derive-where = "1.6"  # For deriving traits on structural types
 //! ```
 //!
@@ -264,27 +264,52 @@ pub mod access;
 pub mod extract;
 /// Type-level presence markers and traits for field state tracking.
 pub mod presence;
+/// Serde integration helpers.
+#[cfg(feature = "serde")]
+pub mod serde;
 
 pub use structural_typing_macros::structural;
 
 /// Construct a `FieldSet` by selecting fields from a module.
 ///
-/// # Syntax
-/// - `select!(module: field)` - field is Present
-/// - `select!(module: field?)` - field is Optional
-/// - `select!(module: field-)` - field is Absent
-/// - `select!(module: field<Type>)` - field has custom presence type
-/// - `select!(module: all?)` - all fields Optional
-/// - `select!(module: all-)` - all fields Absent
-/// - `select!(module: field, ..F)` - field is Present, remaining fields from F
-/// - Multiple fields compose: `select!(module: field1, field2?)` expands to `module::with::field1<Present, module::with::field2<Optional>>`
+/// # Presence States
+///
+/// | Suffix | Presence | Field Type |
+/// |--------|----------|------------|
+/// | (none) | Present | `T` |
+/// | `?` | Optional | `Option<T>` |
+/// | `-` | Absent | `PhantomData<T>` |
+///
+/// Access is always `user.field`. In generic code use `.get()` from the `Access` trait.
+///
+/// # Syntax Reference
+///
+/// | Pattern | Description |
+/// |---------|-------------|
+/// | `select!(mod: field)` | field is Present (required) |
+/// | `select!(mod: field?)` | field is Optional |
+/// | `select!(mod: field-)` | field is Absent |
+/// | `select!(mod: field<P>)` | field has custom presence type P |
+/// | `select!(mod: all)` | all fields Present |
+/// | `select!(mod: all?)` | all fields Optional |
+/// | `select!(mod: all-)` | all fields Absent |
+/// | `select!(mod: f1, f2?)` | multiple fields (f1=Present, f2=Optional) |
+/// | `select!(mod: f, ..F)` | spread: f=Present, rest inherited from F |
+/// | `select!(mod: f?, ..F)` | spread: f=Optional, rest inherited from F |
+/// | `select!(mod: f, all-)` | f=Present, all others Absent |
 ///
 /// # Examples
+///
 /// ```ignore
-/// type Create = select!(user: name, email);
-/// type Update = select!(user: name?, email?);
+/// // Concrete types for API boundaries
+/// type Create = select!(user: name, email);      // Both required
+/// type Update = select!(user: name?, email?);    // Both optional
+///
+/// // Generic: add id field to any existing fields
 /// type WithId<F: user::Fields> = select!(user: id, ..F);
-/// fn create_user(user: User<Create>) {...}
+///
+/// // Function using concrete type
+/// fn create(user: User<Create>) -> User<WithId<Create>> { ... }
 /// ```
 #[macro_export]
 macro_rules! select {
