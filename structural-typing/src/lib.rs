@@ -264,6 +264,9 @@ pub mod access;
 pub mod extract;
 /// Type-level presence markers and traits for field state tracking.
 pub mod presence;
+/// Serde integration helpers.
+#[cfg(feature = "serde")]
+pub mod serde;
 
 pub use structural_typing_macros::structural;
 

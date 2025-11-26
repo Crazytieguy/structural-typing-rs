@@ -152,7 +152,7 @@ fn generate_try_from_impl(info: &StructInfo) -> syn::Result<TokenStream> {
         quote! {
             #field_name: value.#field_name
                 .try_extract()
-                .map_err(|_| missing_field(#field_name_str))?
+                .map_err(|_| MissingFieldError::new(#field_name_str))?
                 .0
         }
     });
@@ -171,14 +171,11 @@ fn generate_try_from_impl(info: &StructInfo) -> syn::Result<TokenStream> {
         where
             #(#where_bounds),*
         {
-            type Error = String;
+            type Error = ::structural_typing::serde::MissingFieldError;
 
             fn try_from(value: #module_name::#helper_name #user_ty_generics) -> ::core::result::Result<Self, Self::Error> {
                 use ::structural_typing::extract::TryExtract;
-
-                let missing_field = |field: &'static str| -> String {
-                    format!("missing field `{}`", field)
-                };
+                use ::structural_typing::serde::MissingFieldError;
 
                 Ok(Self {
                     #(#field_conversions),*
