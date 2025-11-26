@@ -142,11 +142,7 @@ fn extract_generic_idents_from_type(
     result
 }
 
-fn visit_type_for_generics(
-    ty: &Type,
-    user_generics: &[String],
-    generics: &mut Vec<TokenStream>,
-) {
+fn visit_type_for_generics(ty: &Type, user_generics: &[String], generics: &mut Vec<TokenStream>) {
     match ty {
         Type::Path(type_path) => {
             if let Some(ident) = type_path.path.get_ident() {
@@ -170,9 +166,7 @@ fn visit_type_for_generics(
                                 let lifetime_str = lifetime.ident.to_string();
                                 if user_generics.contains(&lifetime_str) {
                                     let token = quote! { #lifetime };
-                                    if !generics
-                                        .iter()
-                                        .any(|g| g.to_string() == token.to_string())
+                                    if !generics.iter().any(|g| g.to_string() == token.to_string())
                                     {
                                         generics.push(token);
                                     }
@@ -223,11 +217,7 @@ fn visit_type_for_generics(
     }
 }
 
-fn visit_expr_for_generics(
-    expr: &Expr,
-    user_generics: &[String],
-    generics: &mut Vec<TokenStream>,
-) {
+fn visit_expr_for_generics(expr: &Expr, user_generics: &[String], generics: &mut Vec<TokenStream>) {
     match expr {
         Expr::Path(expr_path) => {
             if let Some(ident) = expr_path.path.get_ident() {
