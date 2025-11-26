@@ -14,7 +14,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! structural-typing = "0.1.8"
+//! structural-typing = "0.1.9"
 //! derive-where = "1.6"  # For deriving traits on structural types
 //! ```
 //!
