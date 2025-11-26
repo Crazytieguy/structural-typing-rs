@@ -395,8 +395,8 @@ pub fn generate(info: &StructInfo, serde_helper: Option<TokenStream>) -> TokenSt
     let remainder_type = quote! {
         /// Computes the field presence state after extracting `F2` from `F1`.
         ///
-        /// When a field is extracted from Present → Present, the remainder is Absent.
-        /// When extracted from Present → Optional, the remainder is also Optional.
+        /// - Extracting to Present or Optional → remainder is Absent (value consumed)
+        /// - Extracting to Absent → remainder keeps F1's presence (nothing extracted)
         #[allow(type_alias_bounds)]
         pub type Remainder<#remainder_params> = FieldSet<
             #(#remainder_fields),*
